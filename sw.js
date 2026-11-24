@@ -1,5 +1,5 @@
 /* Service Worker: macht die App offline nutzbar und zeigt Erinnerungen im Hintergrund. */
-const VERSION="sp-v6";
+const VERSION="sp-v7";
 const SHELL=["./","index.html","store.js","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/badge-96.png","icons/apple-touch-icon.png"];
 const OPTIONAL=["seed.enc.json"];
 

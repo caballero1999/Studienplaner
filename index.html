@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <script src="store.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+JP:wght@400;700;900&display=swap">
 <style>
 /* Layout: schmale Kopfzeile mit Reitern, darunter eine Spalte (Überblick) bzw. Raster (Plan) — Werkbank eines Ingenieurs, kühl, ruhig, ein Signalton */
 :root{
@@ -253,6 +253,17 @@ body{margin:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none
 }
 @media (display-mode:standalone){.install-only{display:none}}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+/* Design-Auswahl */
+.skins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.skin{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:10px;border:1.5px solid var(--line);background:var(--panel)}
+.skin[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.skin .sw{height:54px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem}
+.skin .sw.jp{background:#f3f1ec;color:#0d0d0d;border:1.5px solid #0d0d0d;position:relative;overflow:hidden}
+.skin .sw.jp::after{content:"";position:absolute;width:34px;height:34px;border-radius:50%;background:#e60033;right:10px}
+.skin .sw.hud{background:#020405;color:#00f0ff;text-shadow:0 0 8px #00f0ff;font-family:monospace;border:1px solid #00f0ff}
+.skin b{font-size:.85rem}
+</style>
+<style id="skin-hud" media="not all">
 /* =====================  CYBER-HUD THEME  ===================== */
 html:root:not(#_){
   --bg:#020405; --panel:#060c10; --ink:#d8fbff; --muted:#6d8f99; --line:rgba(0,240,255,.22);
@@ -397,7 +408,159 @@ nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box
 .hud-next button b{color:var(--mag);margin-right:6px;font-weight:500}
 .hud-next button:hover{border-color:var(--accent)}
 .hud-empty{text-align:center;color:var(--muted);font-family:var(--f-mono);padding:20px 0}
+
+.exam-strip{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;margin-top:-6px;padding:10px 12px;border:1px solid rgba(255,43,214,.45);background:var(--mag-soft);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.exam-strip .lbl{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mag);width:100%;text-shadow:var(--glow-m)}
+.exam-strip .nm{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.04em;color:#fff;font-weight:600}
+.exam-strip .dt{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);margin-left:auto}
+.hud-count.cls{border-color:rgba(0,240,255,.45);box-shadow:inset 0 0 40px rgba(0,240,255,.07)}
+.hud-count.cls .hud-digits b{color:#fff;text-shadow:0 0 8px rgba(0,240,255,.9),0 0 22px rgba(0,240,255,.45),0 0 2px #fff}
 </style>
+<style id="skin-jp">
+/* =====================  JAPAN-TECH THEME  ===================== */
+html:root:not(#_){
+  --bg:#f3f1ec; --panel:#ffffff; --ink:#0d0d0d; --muted:#6b6862; --line:#0d0d0d1f;
+  --red:#e60033; --red-soft:#e600331a;
+  --accent:#e60033; --accent-soft:#e6003314;
+  --ok:#1f7a4d; --ok-soft:#1f7a4d14; --warn:#c77700; --warn-soft:#c7770017;
+  --bad:#e60033; --bad-soft:#e6003314; --info:#1f3fbf; --info-soft:#1f3fbf12;
+  --f-display:"Noto Sans JP","Space Grotesk",system-ui,sans-serif; --f-body:"Noto Sans JP","IBM Plex Sans",system-ui,sans-serif; --f-mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,monospace;
+  --kanji:"概要";
+  color-scheme:light;
+}
+body[data-view="woche"]{--kanji:"時間割"} body[data-view="pruefungen"]{--kanji:"試験"} body[data-view="module"]{--kanji:"科目"}
+body[data-view="plan"]{--kanji:"計画"} body[data-view="termine"]{--kanji:"予定"} body[data-view="ideen"]{--kanji:"発想"} body[data-view="handy"]{--kanji:"設定"}
+body{background:
+  linear-gradient(#0d0d0d0d 1px,transparent 1px) 0 0/100% 24px,
+  linear-gradient(90deg,#0d0d0d0d 1px,transparent 1px) 0 0/24px 100%,
+  #f3f1ec;background-attachment:fixed;font-feature-settings:"palt"}
+body::before{background:#0d0d0d}
+::selection{background:var(--red);color:#fff}
+/* header: black bar, red seal */
+header{background:#0d0d0d;border-bottom:3px solid var(--red)}
+.brand{color:#fff;font-family:var(--f-display);font-weight:900;letter-spacing:.04em;font-size:1.05rem;display:flex;align-items:center;gap:10px}
+.brand::before{content:"学";display:inline-grid;place-items:center;width:28px;height:28px;background:var(--red);color:#fff;font-weight:900;font-size:1rem;border-radius:50%}
+.brand small{color:#ffffff99;font-family:var(--f-mono);letter-spacing:.06em}
+/* big vertical kanji watermark per page */
+main{position:relative}
+main::before{content:var(--kanji);position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:10px;writing-mode:vertical-rl;font-family:var(--f-display);
+  font-weight:900;font-size:clamp(56px,16vw,120px);line-height:1;color:var(--red);opacity:.09;pointer-events:none;letter-spacing:.05em;z-index:0}
+main>*{position:relative;z-index:1}
+/* type */
+h1,h2,h3{font-family:var(--f-display);letter-spacing:.01em}
+h1{font-size:1.6rem;font-weight:900}
+h2{font-size:1.02rem;font-weight:900;display:flex;align-items:center;gap:8px}
+.panel>h2{padding-left:18px;background:linear-gradient(var(--red),var(--red)) 0 calc(50% - 5px)/10px 10px no-repeat}
+h3{font-weight:700}
+.eyebrow{font-family:var(--f-mono);color:var(--red);letter-spacing:.14em;text-transform:uppercase}
+.eyebrow::before{content:"■ ";color:var(--red)}
+.lead{color:var(--muted)}
+/* panels */
+.panel,.col,.day,.mod{border-radius:0;background:#fff;border:1.5px solid #0d0d0d;box-shadow:4px 4px 0 #0d0d0d}
+.panel>h2{border-bottom:1.5px solid #0d0d0d;padding-bottom:10px;margin-bottom:12px}
+.notice{border-radius:0;background:#fff;border:1.5px solid var(--red);border-left:8px solid var(--red);color:var(--ink)}
+.notice b{color:var(--red)}
+.mod:hover{box-shadow:6px 6px 0 var(--red)}
+/* pills */
+.pill{border-radius:0;font-family:var(--f-mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border:1.5px solid currentColor;background:transparent !important}
+.s-bestanden{color:var(--ok)} .s-läuft{color:#0d0d0d} .s-offen{color:var(--warn)} .s-nb{color:#fff;background:var(--red) !important;border-color:var(--red)} .s-unklar{color:var(--muted)}
+.t-Klausur{color:var(--red)} .t-Abgabe{color:var(--warn)} .t-Termin{color:var(--info)} .t-Zeitraum{color:#0d0d0d}
+.ann{color:var(--warn)}
+/* buttons + inputs */
+.btn,.chip{border-radius:0;border:1.5px solid #0d0d0d;background:#fff;color:#0d0d0d;font-weight:700;font-family:var(--f-display)}
+.btn:hover,.chip:hover{background:#0d0d0d;color:#fff;border-color:#0d0d0d}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:#0d0d0d;border-color:#0d0d0d}
+.chip[aria-pressed="true"]{background:#0d0d0d;color:#fff;border-color:#0d0d0d}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=password],select,textarea{border-radius:0;border:1.5px solid #0d0d0d;background:#fff;color:#0d0d0d}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red);box-shadow:3px 3px 0 var(--red)}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+/* progress + kpis */
+.progress{height:10px;border-radius:0;border:1.5px solid #0d0d0d;background:#fff}
+.kpi b{font-family:var(--f-mono);font-weight:700}
+.kpi span{font-size:.75rem}
+/* event cards */
+.ev2{border-radius:0;background:#fff;border:1.5px solid #0d0d0d}
+.ev2 .date{border-radius:0;background:#0d0d0d !important;color:#fff !important;font-family:var(--f-mono)}
+.ev2.ty-Klausur .date{background:var(--red) !important}
+.ev2.ty-Abgabe .date{background:var(--warn) !important}
+.ev2.ty-Termin .date{background:var(--info) !important}
+.ev2 .date b{font-family:var(--f-mono);font-weight:700}
+.ev2 .ttl{font-weight:700}
+.ev2.soon{border-color:var(--red);box-shadow:4px 4px 0 var(--red)}
+.ev2.soon .when{color:var(--red);font-weight:700}
+@media (hover:hover){.ev2:hover{box-shadow:4px 4px 0 #0d0d0d}}
+.meta{font-family:var(--f-mono)}
+/* calendar */
+.cell{border-radius:0;border-color:#0d0d0d26;background:#fff}
+.cell.today{border:2px solid var(--red);box-shadow:none}
+.cell.today .d{color:var(--red);font-weight:700}
+.cell.sel{background:#0d0d0d;color:#fff}
+.cell.sel .d{color:#fff}
+.cell .e{border-radius:0}
+.cell .cnt{background:var(--red);color:#fff;border-radius:50%;min-width:16px;text-align:center}
+.dow{color:#0d0d0d !important;font-weight:700}
+@media (max-width:640px){.cell .e.t-Klausur{background:var(--red)} .cell .e.t-Zeitraum{background:#0d0d0d;opacity:.25}}
+/* week */
+.slot{border-radius:0;background:#fff;border:1px solid #0d0d0d26;border-left:4px solid #0d0d0d}
+.day.today{border-color:var(--red);box-shadow:4px 4px 0 var(--red)}
+/* drawer + day sheet */
+.drawer{border-left:3px solid var(--red);background:#fff}
+.daysheet{border-radius:0;border:1.5px solid #0d0d0d;border-top:4px solid var(--red);background:#fff;box-shadow:0 -6px 0 #0d0d0d14}
+.daysheet .grab{background:#0d0d0d;border-radius:0}
+.daycard{border-radius:0;background:#fff;border:1.5px solid #0d0d0d}
+.daycard.dc-Klausur{border-left:6px solid var(--red)}
+/* bottom nav */
+nav a{border-radius:0}
+nav a[aria-current="page"]{background:var(--red);color:#fff}
+@media (max-width:760px){
+  nav#nav{background:#fff;border-top:2px solid #0d0d0d}
+  nav#nav a,nav#nav .more-btn{color:#0d0d0d;font-size:.62rem;font-weight:700}
+  nav#nav a[aria-current="page"],nav#nav .more-btn[aria-current="page"]{color:var(--red);background:none}
+  nav#nav a[aria-current="page"] .nav-ic,nav#nav .more-btn[aria-current="page"] .nav-ic{background:var(--red);color:#fff;border-radius:0}
+  nav#nav.open a.sec{background:#fff;border:1.5px solid #0d0d0d;border-radius:0;box-shadow:4px 4px 0 #0d0d0d}
+}
+/* ===== Countdown (Japan) ===== */
+.hud-count{position:relative;overflow:hidden;background:#0d0d0d;color:#fff;border:0;padding:18px 16px 16px 16px;cursor:pointer;box-shadow:6px 6px 0 var(--red)}
+.hud-count::before{content:"";position:absolute;width:min(62vw,300px);aspect-ratio:1;border-radius:50%;background:var(--red);right:-22%;top:50%;transform:translateY(-50%);opacity:.95}
+.hud-count::after{content:"試験まで";position:absolute;left:10px;top:14px;writing-mode:vertical-rl;font-family:var(--f-display);font-weight:900;font-size:.95rem;letter-spacing:.3em;color:#ffffff59}
+.hud-count>*{position:relative;z-index:1}
+.hud-scan{display:none}
+.hud-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#ffffffb3;padding-left:22px}
+.hud-top .live{color:#fff}
+.hud-digits{display:flex;justify-content:center;align-items:flex-start;gap:2px;margin:16px 0 6px;padding-left:18px;font-family:var(--f-mono)}
+.hud-digits .u{display:flex;flex-direction:column;align-items:center}
+.hud-digits b{font-size:clamp(2.4rem,13vw,4.2rem);line-height:1;font-weight:700;font-variant-numeric:tabular-nums;color:#fff}
+.hud-digits small{font-size:.62rem;letter-spacing:.14em;color:#ffffffb3;margin-top:6px;text-transform:uppercase}
+.hud-digits .u small::before{font-family:var(--f-display);font-weight:900;margin-right:4px;color:#fff;letter-spacing:0}
+.hud-digits .u:nth-last-of-type(4) small::before{content:"日"} .hud-digits .u:nth-last-of-type(3) small::before{content:"時"}
+.hud-digits .u:nth-last-of-type(2) small::before{content:"分"} .hud-digits .u:nth-last-of-type(1) small::before{content:"秒"}
+.hud-digits i{font-style:normal;font-size:clamp(1.8rem,9vw,3rem);line-height:1.1;color:#ffffff66}
+.hud-target{text-align:center;font-family:var(--f-display);font-weight:900;font-size:1.15rem;padding-left:18px}
+.hud-sub{text-align:center;font-family:var(--f-mono);font-size:.78rem;color:#ffffffcc;margin-top:4px;padding-left:18px}
+.hud-sub b{color:#fff}
+.hud-warn{display:block;text-align:center;margin-top:8px;padding-left:18px}
+.hud-warn .pill{background:#fff !important;color:var(--red);border-color:#fff}
+.hud-track{display:flex;gap:4px;margin:14px 0 0 22px}
+.hud-track span{flex:1;height:4px;background:#ffffff33}
+.hud-track span.on{background:#fff}
+.hud-next{display:flex;gap:6px;overflow-x:auto;margin:12px 0 0 22px;scrollbar-width:none}
+.hud-next::-webkit-scrollbar{display:none}
+.hud-next button{all:unset;cursor:pointer;flex:0 0 auto;font-family:var(--f-mono);font-size:.72rem;padding:5px 9px;border:1px solid #ffffff4d;color:#fff;white-space:nowrap;background:#0d0d0dcc}
+.hud-next button b{color:#fff;background:var(--red);padding:0 4px;margin-right:6px;font-weight:700}
+.hud-empty{text-align:center;color:#ffffffb3;font-family:var(--f-mono);padding:20px 0}
+.blink{animation:none}
+/* theme picker */
+.skins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.hud-count.cls::after{content:"次の授業"}
+.hud-count.cls.running::before{background:#fff;opacity:.12}
+.exam-strip{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;margin-top:-6px;padding:10px 12px;background:#fff;border:1.5px solid #0d0d0d;border-left:8px solid var(--red)}
+.exam-strip .lbl{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--red);font-weight:700;width:100%}
+.exam-strip .nm{font-weight:900;font-family:var(--f-display)}
+.exam-strip .dt{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);margin-left:auto}
+</style>
+<script>(function(){var k="jp";try{k=localStorage.getItem("sp:skin")||"jp"}catch(e){}window.SP_SKIN=k;var h=document.getElementById("skin-hud"),j=document.getElementById("skin-jp");h.media=k==="hud"?"all":"not all";j.media=k==="jp"?"all":"not all";document.querySelector('meta[name="theme-color"]').content=k==="hud"?"#020405":"#0d0d0d"})();</script>
 
 </head>
 <body>
@@ -493,6 +656,7 @@ let flashMsg="";function flash(m){flashMsg=m;render();setTimeout(()=>{flashMsg="
 /* ---------- views ---------- */
 function render(){
   const v=view();
+  document.body.dataset.view=v;
   document.querySelectorAll("#nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+v?"page":"false"));
   const nv=document.getElementById("nav");nv.classList.remove("open");const mb=nv.querySelector(".more-btn");mb.setAttribute("aria-expanded","false");mb.setAttribute("aria-current",["plan","ideen","handy"].includes(v)?"page":"false");
   const app=document.getElementById("app");
@@ -522,7 +686,7 @@ function vCountdown(){
   const inPhase=ex.filter(x=>x.at-at<30*864e5).slice(0,12);
   return `<section class="hud-count" data-day="${esc(e.date)}" role="button" tabindex="0" aria-label="Nächste Klausur: ${esc(name)}">
     <div class="hud-scan"></div>
-    <div class="hud-top"><span>// T-minus · nächste Klausur</span><span class="live"><span class="blink">●</span> Live</span></div>
+    <div class="hud-top"><span>Countdown · nächste Klausur</span><span class="live"><span class="blink">●</span> Live</span></div>
     <div class="hud-digits" id="cd" data-at="${at}">
       <div class="u d"><b id="cd-d">--</b><small>Tage</small></div><i>:</i>
       <div class="u"><b id="cd-h">--</b><small>Std</small></div><i>:</i>
@@ -536,11 +700,50 @@ function vCountdown(){
     ${ex.length>1?`<div class="hud-next">${ex.slice(1,8).map(x=>{const dd=new Date(x.at),mm=x.e.moduleId&&state.mods.find(k=>k.id===x.e.moduleId);return `<button type="button" data-day="${esc(x.e.date)}"><b>${String(dd.getDate()).padStart(2,"0")}.${String(dd.getMonth()+1).padStart(2,"0")}</b>${esc(mm?mm.name:x.e.title.replace(/^Klausur\s+/i,""))}</button>`}).join("")}</div>`:""}
   </section>`;
 }
+/* ---------- Nächste Lehrveranstaltung (großes Display) ---------- */
+function nextSlot(){
+  if(!state.sched||typeof slotsOn!=="function")return null;
+  const now=new Date();
+  for(let i=0;i<21;i++){
+    const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);
+    for(const x of slotsOn(d).filter(x=>!x.off)){
+      const [sh,sm]=x.start.split(":").map(Number),[eh,em]=x.end.split(":").map(Number);
+      const st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),sh,sm), en=new Date(d.getFullYear(),d.getMonth(),d.getDate(),eh,em);
+      if(en>now)return {x,st,en,running:st<=now,day:d};
+    }
+  }
+  return null;
+}
+function vNextClass(){
+  const n=nextSlot();
+  const ex=upcomingExams()[0];
+  const exStrip=ex?(()=>{const {e,at}=ex,d=new Date(at),m=e.moduleId&&state.mods.find(k=>k.id===e.moduleId);const days=Math.ceil((at-Date.now())/864e5);
+    const warn=e.notes&&/zurückgetreten|nicht angemeldet|ACHTUNG/i.test(e.notes);
+    return `<button type="button" class="exam-strip" data-day="${esc(e.date)}"><span class="lbl">Nächste Klausur</span><span class="nm">${esc(m?m.name:e.title.replace(/^Klausur\s+/i,""))}</span><span class="dt">${DOW_L[d.getDay()].slice(0,2)} ${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")} · in ${days} Tagen</span>${warn?`<span class="pill s-nb">Anmeldung prüfen</span>`:""}</button>`})():"";
+  if(!n)return `<section class="hud-count cls"><div class="hud-scan"></div><div class="hud-top"><span>Nächste Stunde</span><span class="live">● frei</span></div><div class="hud-empty">Keine Lehrveranstaltungen in den nächsten drei Wochen.</div></section>${exStrip}`;
+  const {x,st,en,running,day}=n, target=running?en:st, ms=target-Date.now(), showD=ms>=864e5;
+  const t0=new Date();const dd=Math.round((new Date(day.getFullYear(),day.getMonth(),day.getDate())-new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()))/864e5);
+  const when=dd===0?"Heute":dd===1?"Morgen":DOW_L[day.getDay()]+", "+day.getDate()+". "+MON[day.getMonth()];
+  const iso=isoD(day);
+  return `<section class="hud-count cls${running?" running":""}" data-day="${iso}" role="button" tabindex="0" aria-label="Nächste Stunde: ${esc(x.title)}">
+    <div class="hud-scan"></div>
+    <div class="hud-top"><span>${running?"Läuft gerade · noch":"Nächste Stunde · beginnt in"}</span><span class="live"><span class="blink">●</span> ${esc(when)}</span></div>
+    <div class="hud-digits" id="cd" data-at="${target.getTime()}">
+      ${showD?`<div class="u d"><b id="cd-d">--</b><small>Tage</small></div><i>:</i>`:""}
+      <div class="u"><b id="cd-h">--</b><small>Std</small></div><i>:</i>
+      <div class="u"><b id="cd-m">--</b><small>Min</small></div><i>:</i>
+      <div class="u"><b id="cd-s">--</b><small>Sek</small></div>
+    </div>
+    <div class="hud-target">${esc(x.title)}</div>
+    <div class="hud-sub"><b>${esc(x.start)}–${esc(x.end)}</b>${x.kind?" · "+esc(x.kind):""}${x.room?" · "+esc(x.room):""}</div>
+  </section>${exStrip}`;
+}
 function tickCountdown(){
   const el=document.getElementById("cd"); if(!el)return;
   let ms=Math.max(0,+el.dataset.at-Date.now());
   const D=Math.floor(ms/864e5);ms-=D*864e5;const H=Math.floor(ms/36e5);ms-=H*36e5;const M=Math.floor(ms/6e4);ms-=M*6e4;const S=Math.floor(ms/1e3);
   const set=(id,v)=>{const x=document.getElementById(id);if(x&&x.textContent!==v)x.textContent=v};
+  if(+el.dataset.at<=Date.now()&&!el.dataset.done){el.dataset.done="1";setTimeout(render,1500)}
   set("cd-d",String(D).padStart(2,"0"));set("cd-h",String(H).padStart(2,"0"));set("cd-m",String(M).padStart(2,"0"));set("cd-s",String(S).padStart(2,"0"));
 }
 setInterval(tickCountdown,1000);
@@ -555,7 +758,7 @@ function vOverview(){
   const cur=state.mods.filter(m=>m.status==="läuft"||m.planSem==="WS26");
   return `<div class="stack">
   <div><div class="eyebrow">7. Fachsemester · WS 2026/27</div><h1>Hallo Hendrik<span class="blink" style="color:var(--mag)">_</span></h1></div>
-  ${vCountdown()}
+  ${vNextClass()}
   ${check.length?`<div class="notice"><b>${check.length} Module ohne geklärten Status.</b> Die Liste stammt aus deinen Studienordnern. Ob du sie bestanden hast, steht erst fest, wenn die Polli-Daten da sind oder du den Status selbst setzt.</div>`:""}
   <div class="grid g2">
     <section class="panel"><h2>Fortschritt <span class="mono muted num" style="font-size:.85rem">${done} / ${TOTAL_ECTS} ECTS</span></h2>
@@ -680,6 +883,10 @@ function vHandy(){
   return `<div class="stack">
   <div><div class="eyebrow">Einstellungen</div><h1>App &amp; Erinnerungen</h1><p class="lead">Installieren, Erinnerungen einstellen, Termine in den Handy-Kalender holen und deine Daten sichern.</p></div>
   <div class="grid g2">
+  <section class="panel"><h2>Design</h2><div class="skins">
+    <button class="skin" data-act="skin-jp" aria-pressed="${window.SP_SKIN!=="hud"}"><span class="sw jp">学</span><b>Japan-Tech</b></button>
+    <button class="skin" data-act="skin-hud" aria-pressed="${window.SP_SKIN==="hud"}"><span class="sw hud">57:19</span><b>Cyber-HUD</b></button>
+  </div></section>
   <section class="panel install-only"><h2>Auf den Homescreen</h2>${installBox}</section>
   <section class="panel"><h2>Erinnerungen</h2>${remBox}
     <p class="ann" style="margin-top:12px">${ios?"iPhone: Erinnerungen kommen, wenn du die App öffnest oder sie offen ist. Für Erinnerungen bei geschlossener App nutze vorerst den Kalender-Export.":"Android: Die App prüft ungefähr einmal am Tag im Hintergrund. Für Erinnerungen auf die Minute nutze zusätzlich den Kalender-Export."}</p>
@@ -705,6 +912,9 @@ async function handyAct(a,el){
   if(a==="rem-test"){const p=await R.test();if(p!=="granted")flash("Mitteilungen sind nicht erlaubt.");return}
   if(a==="ics-exams"){window.SPTools.exportICS(["Klausur","Abgabe"]);return}
   if(a==="ics-all"){window.SPTools.exportICS(null);return}
+  if(a==="skin-jp"||a==="skin-hud"){const k=a.slice(5);window.SP_SKIN=k;try{localStorage.setItem("sp:skin",k)}catch(e){}
+    document.getElementById("skin-hud").media=k==="hud"?"all":"not all";document.getElementById("skin-jp").media=k==="jp"?"all":"not all";
+    document.querySelector('meta[name="theme-color"]').content=k==="hud"?"#020405":"#0d0d0d";render();return}
   if(a==="backup"){window.SPTools.exportBackup();return}
   if(a==="update"){el.disabled=true;el.textContent="Suche …";const neu=await window.SPUpdate.check();
     if(neu){el.textContent="Wird geladen …";setTimeout(()=>location.reload(),1500)}else{flash("Du hast die neueste Version ("+window.SP_VERSION+").")}return}

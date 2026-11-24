@@ -245,7 +245,7 @@ window.SPInstall={
   ios:()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)
 };
 /* ---------------- Updates ---------------- */
-window.SP_VERSION="2.0 HUD (24.11.2026)";
+window.SP_VERSION="2.2 Japan-Tech (24.11.2026)";
 function updateBanner(){
   if(document.getElementById("sp-upd"))return;
   const b=document.createElement("button");b.id="sp-upd";b.type="button";
