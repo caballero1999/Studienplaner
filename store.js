@@ -244,5 +244,34 @@ window.SPInstall={
   standalone:()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true,
   ios:()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)
 };
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(e=>console.warn("SW",e)))}
+/* ---------------- Updates ---------------- */
+window.SP_VERSION="1.5 (24.11.2026)";
+function updateBanner(){
+  if(document.getElementById("sp-upd"))return;
+  const b=document.createElement("button");b.id="sp-upd";b.type="button";
+  b.setAttribute("style","position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));background:var(--accent,#0f7c8c);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;max-width:calc(100% - 32px)");
+  b.textContent="Neue Version da · tippen zum Aktualisieren";
+  b.onclick=()=>location.reload();
+  document.body.appendChild(b);
+}
+window.SPUpdate={
+  async check(){
+    try{const reg=await navigator.serviceWorker.getRegistration();if(!reg)return false;await reg.update();return !!(reg.installing||reg.waiting)}catch(e){return false}
+  },
+  async swVersion(){
+    try{const c=navigator.serviceWorker.controller;if(!c)return "";return await new Promise(res=>{const t=setTimeout(()=>res(""),1500);
+      navigator.serviceWorker.addEventListener("message",function h(e){if(e.data&&e.data.type==="version"){clearTimeout(t);navigator.serviceWorker.removeEventListener("message",h);res(e.data.version)}});c.postMessage("version")})}catch(e){return ""}
+  }
+};
+if("serviceWorker" in navigator){
+  const hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadController)updateBanner()});
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+      reg.update().catch(()=>{});
+      document.addEventListener("visibilitychange",()=>{if(!document.hidden)reg.update().catch(()=>{})});
+      setInterval(()=>reg.update().catch(()=>{}),30*60e3);
+    }).catch(e=>console.warn("SW",e));
+  });
+}
 })();

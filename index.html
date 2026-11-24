@@ -496,6 +496,7 @@ function vHandy(){
       <div class="checks">${chk("type","Klausur",s.types.includes("Klausur"),"Klausuren")}${chk("type","Abgabe",s.types.includes("Abgabe"),"Abgaben")}${chk("type","Termin",s.types.includes("Termin"),"Termine")}${chk("type","Zeitraum",s.types.includes("Zeitraum"),"Zeiträume")}</div></div>
     <div class="switch"><div>Uhrzeit der Erinnerung</div><select data-set="hour" style="width:auto">${[6,7,8,9,10,12,18,20].map(h=>`<option value="${h}" ${h===s.hour?"selected":""}>${h}:00 Uhr</option>`).join("")}</select></div>
     <div class="btnrow"><button class="btn small" data-act="rem-test">Test-Mitteilung</button></div>`;
+  window.SPUpdate&&window.SPUpdate.swVersion().then(v=>{const x=document.getElementById("sw-ver");if(x&&v)x.textContent="· "+v});
   return `<div class="stack">
   <div><div class="eyebrow">Einstellungen</div><h1>App &amp; Erinnerungen</h1><p class="lead">Installieren, Erinnerungen einstellen, Termine in den Handy-Kalender holen und deine Daten sichern.</p></div>
   <div class="grid g2">
@@ -510,8 +511,9 @@ function vHandy(){
   <section class="panel"><h2>Deine Daten</h2>
     <dl class="kv"><dt>Verbindung</dt><dd>${navigator.onLine?'<span class="ok-dot"></span>Online':'<span class="off-dot"></span>Offline, alles funktioniert trotzdem'}</dd>
     <dt>Gespeichert</dt><dd>auf diesem Gerät${lastSave?", zuletzt "+lastSave.toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}):""}</dd>
-    <dt>Abgleich</dt><dd>noch keiner zwischen Handy und Laptop</dd></dl>
-    <div class="btnrow"><button class="btn small" data-act="backup">Sicherung herunterladen</button><label class="btn small" style="flex-direction:row;color:var(--ink);font-size:.85rem">Sicherung laden<input type="file" accept="application/json,.json" data-act-file="restore" hidden></label></div>
+    <dt>Abgleich</dt><dd>noch keiner zwischen Handy und Laptop</dd>
+    <dt>App-Version</dt><dd><span class="mono">${esc(window.SP_VERSION||"")}</span> <span class="mono muted" id="sw-ver"></span></dd></dl>
+    <div class="btnrow"><button class="btn small" data-act="update">Nach Updates suchen</button><button class="btn small" data-act="backup">Sicherung herunterladen</button><label class="btn small" style="flex-direction:row;color:var(--ink);font-size:.85rem">Sicherung laden<input type="file" accept="application/json,.json" data-act-file="restore" hidden></label></div>
   </section>
   </div></div>`;
 }
@@ -524,6 +526,8 @@ async function handyAct(a,el){
   if(a==="ics-exams"){window.SPTools.exportICS(["Klausur","Abgabe"]);return}
   if(a==="ics-all"){window.SPTools.exportICS(null);return}
   if(a==="backup"){window.SPTools.exportBackup();return}
+  if(a==="update"){el.disabled=true;el.textContent="Suche …";const neu=await window.SPUpdate.check();
+    if(neu){el.textContent="Wird geladen …";setTimeout(()=>location.reload(),1500)}else{flash("Du hast die neueste Version ("+window.SP_VERSION+").")}return}
 }
 document.addEventListener("change",async e=>{
   const t=e.target;

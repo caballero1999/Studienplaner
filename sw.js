@@ -1,10 +1,10 @@
 /* Service Worker: macht die App offline nutzbar und zeigt Erinnerungen im Hintergrund. */
-const VERSION="sp-v4";
+const VERSION="sp-v5";
 const SHELL=["./","index.html","store.js","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/badge-96.png","icons/apple-touch-icon.png"];
 const OPTIONAL=["seed.enc.json"];
 
 self.addEventListener("install",e=>{
-  e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL).then(()=>Promise.all(OPTIONAL.map(u=>c.add(u).catch(()=>{}))))).then(()=>self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"}))).then(()=>Promise.all(OPTIONAL.map(u=>c.add(u).catch(()=>{}))))).then(()=>self.skipWaiting()));
 });
 self.addEventListener("activate",e=>{
   e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=="sp-reminders"&&k!=="sp-fonts").map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
@@ -19,13 +19,25 @@ self.addEventListener("fetch",e=>{
     return;
   }
   if(url.origin!==self.location.origin)return;
+  /* Immer zuerst die neueste Version aus dem Netz holen (am HTTP-Cache vorbei),
+     nur ohne Netz oder bei sehr langsamem Netz die gespeicherte Version nehmen. */
   e.respondWith(caches.open(VERSION).then(async c=>{
     const key=req.mode==="navigate"?"index.html":req;
-    const hit=await c.match(key,{ignoreSearch:true});
-    const net=fetch(req).then(r=>{if(r.ok)c.put(key,r.clone());return r}).catch(()=>hit);
-    return hit||net;
+    const net=fetch(req.mode==="navigate"?new Request("index.html",{cache:"no-cache"}):new Request(req,{cache:"no-cache"}))
+      .then(r=>{if(r.ok)c.put(key,r.clone());return r});
+    const slow=new Promise(res=>setTimeout(res,4000));
+    try{
+      const r=await Promise.race([net,slow.then(()=>null)]);
+      if(r)return r;
+      const hit=await c.match(key,{ignoreSearch:true});
+      return hit||await net;
+    }catch(err){
+      const hit=await c.match(key,{ignoreSearch:true});
+      if(hit)return hit; throw err;
+    }
   }));
 });
+self.addEventListener("message",e=>{if(e.data==="version"&&e.source)e.source.postMessage({type:"version",version:VERSION})});
 
 /* Hintergrundprüfung (Android/Chrome, installierte App) */
 async function checkReminders(){
