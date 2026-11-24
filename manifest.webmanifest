@@ -1,0 +1,23 @@
+{
+  "name": "Studienplaner TI",
+  "short_name": "Studium",
+  "description": "Module, Prüfungen, Stundenplan und Fristen für den Bachelor Technische Informatik.",
+  "lang": "de",
+  "id": "./",
+  "start_url": "./#ueberblick",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f5f6",
+  "theme_color": "#0f7c8c",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Prüfungen", "url": "./#pruefungen"},
+    {"name": "Stundenplan", "url": "./#woche"},
+    {"name": "Termine", "url": "./#termine"}
+  ]
+}

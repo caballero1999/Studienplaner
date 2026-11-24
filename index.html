@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studienplaner TI</title>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#172026" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Studium">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="store.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: schmale Kopfzeile mit Reitern, darunter eine Spalte (Überblick) bzw. Raster (Plan) — Werkbank eines Ingenieurs, kühl, ruhig, ein Signalton */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202b; --muted:#5a6772; --line:#dde3e7;
+  --accent:#0f7c8c; --accent-soft:#e1f1f3;
+  --ok:#2f8a4a; --ok-soft:#e3f2e7; --warn:#b26a00; --warn-soft:#fbefdc; --bad:#b3362c; --bad-soft:#f8e3e1; --info:#3d5fa8; --info-soft:#e5ebf7;
+  --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1519; --panel:#172026; --ink:#e4eaee; --muted:#93a1ab; --line:#26333b;
+  --accent:#4cc0cf; --accent-soft:#143239;
+  --ok:#66c27f; --ok-soft:#173225; --warn:#e3a54a; --warn-soft:#352813; --bad:#ef7d72; --bad-soft:#3a1d1a; --info:#8fa9e6; --info-soft:#1c2640; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1519; --panel:#172026; --ink:#e4eaee; --muted:#93a1ab; --line:#26333b;
+  --accent:#4cc0cf; --accent-soft:#143239;
+  --ok:#66c27f; --ok-soft:#173225; --warn:#e3a54a; --warn-soft:#352813; --bad:#ef7d72; --bad-soft:#3a1d1a; --info:#8fa9e6; --info-soft:#1c2640; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:1.15rem;letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+.brand small{font-family:var(--f-mono);font-weight:400;font-size:.75rem;color:var(--muted)}
+nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:6px;font-weight:500}
+nav a:hover{color:var(--ink);background:var(--bg)}
+nav a[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+main{padding-block:24px 64px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:1.6rem} h2{font-size:1.15rem} h3{font-size:1rem}
+.lead{color:var(--muted);margin:4px 0 0;max-width:65ch}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel>h2{margin-bottom:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.stack{display:flex;flex-direction:column;gap:20px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono)}
+.muted{color:var(--muted)}
+.notice{background:var(--warn-soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:.9rem}
+.notice b{color:var(--warn)}
+/* progress */
+.progress{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line);margin:10px 0 8px}
+.progress span{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:14px}
+.kpi b{display:block;font-family:var(--f-display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.82rem;color:var(--muted)}
+/* lists */
+ul.clean{list-style:none;margin:0;padding:0}
+.ev{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.date{font-family:var(--f-mono);font-size:.8rem;text-align:center;border:1px solid var(--line);border-radius:6px;padding:4px 0;line-height:1.2}
+.date b{display:block;font-size:1.15rem;font-family:var(--f-display)}
+.ev .t{min-width:0}
+.ev .t div{overflow-wrap:anywhere}
+.days{font-family:var(--f-mono);font-size:.8rem;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.s-bestanden{background:var(--ok-soft);color:var(--ok)}
+.s-läuft{background:var(--info-soft);color:var(--info)}
+.s-offen{background:var(--warn-soft);color:var(--warn)}
+.s-unklar{background:transparent;color:var(--muted);border-color:var(--line);border-style:dashed}
+.s-nb{background:var(--bad-soft);color:var(--bad)}
+.t-Klausur{background:var(--bad-soft);color:var(--bad)}
+.t-Abgabe{background:var(--warn-soft);color:var(--warn)}
+.t-Termin{background:var(--info-soft);color:var(--info)}
+.t-Zeitraum{background:var(--accent-soft);color:var(--accent)}
+.ann{font-size:.72rem;color:var(--warn);font-family:var(--f-mono)}
+.task{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.task input{margin-top:4px;accent-color:var(--accent)}
+.task.done span{text-decoration:line-through;color:var(--muted)}
+/* modules */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:5px 12px;border-radius:999px;font:inherit;font-size:.85rem;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.mod{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px;min-width:0}
+.mod:hover{border-color:var(--accent)}
+.mod .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.mod h3{overflow-wrap:anywhere}
+.meta{display:flex;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);font-family:var(--f-mono)}
+/* plan */
+.plan{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.col header{position:static;border:0;background:none;display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.pcard{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.pcard .row{display:flex;justify-content:space-between;gap:6px;align-items:center}
+.pcard button.name{all:unset;cursor:pointer;font-weight:500;overflow-wrap:anywhere}
+.pcard button.name:focus-visible{outline:2px solid var(--accent)}
+.mv{display:flex;gap:4px}
+.mv button{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:4px;width:26px;height:24px;cursor:pointer;font:inherit;line-height:1}
+.mv button:hover{color:var(--accent);border-color:var(--accent)}
+/* calendar */
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cal-head h2{flex:1}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dow{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0}
+.cell{min-height:78px;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:.75rem;background:var(--panel);min-width:0;overflow:hidden}
+.cell.other{opacity:.45}
+.cell.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cell .d{font-family:var(--f-mono);color:var(--muted)}
+.cell .e{display:block;border-radius:3px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .e.range{opacity:.75}
+@media (max-width:640px){.cell{min-height:52px}.cell .e{font-size:0;height:6px;padding:0}}
+/* week */
+.week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:820px){.week{grid-template-columns:1fr}}
+.day{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.day.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.day header{position:static;background:none;border:0;border-bottom:1px solid var(--line);padding-bottom:6px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.slot{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:7px 9px;background:var(--bg);display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.slot.off{opacity:.45;border-left-color:var(--line)}
+.slot.ev-Klausur{border-left-color:var(--bad);background:var(--bad-soft)}
+.slot.ev-Abgabe{border-left-color:var(--warn);background:var(--warn-soft)}
+.slot.ev-Termin{border-left-color:var(--info);background:var(--info-soft)}
+/* assistant */
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;border-radius:999px;padding:12px 18px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.chat{display:flex;flex-direction:column;gap:10px;flex:1;min-height:120px}
+.bubble{padding:9px 12px;border-radius:10px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.93rem}
+.bubble.me{align-self:flex-end;background:var(--accent-soft)}
+.bubble.ai{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.bubble.log{align-self:flex-start;font-family:var(--f-mono);font-size:.75rem;color:var(--muted);padding:2px 4px}
+/* buttons & forms */
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 14px;font:inherit;font-weight:500;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:3px 10px;font-size:.85rem}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);min-width:0}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+textarea{min-height:80px;resize:vertical}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.form .full{grid-column:1/-1}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,25,.4);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--panel);z-index:21;overflow-y:auto;border-left:1px solid var(--line);
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 20px;display:flex;flex-direction:column;gap:16px}
+.drawer .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 0}
+.status-line{font-size:.8rem;color:var(--muted);font-family:var(--f-mono)}
+
+/* ---------- Handy-App ---------- */
+html{-webkit-text-size-adjust:100%}
+body{margin:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+.nav-ic{display:none}
+.more-btn{display:none}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:.95rem;color:var(--ink)}
+.switch:first-of-type{border-top:0}
+.switch small{display:block;color:var(--muted);font-size:.8rem}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.checks label{flex-direction:row;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--ink);font-size:.88rem;cursor:pointer}
+.checks input{accent-color:var(--accent);margin:0}
+.steps{margin:8px 0 0;padding-left:20px}
+.steps li{margin:4px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.88rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ok-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
+.off-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-right:6px}
+@media (max-width:760px){
+  body{font-size:15.5px}
+  .brand small{display:none}
+  .bar{padding-block:10px}
+  header .bar{min-height:48px}
+  main{padding-block:16px calc(84px + env(safe-area-inset-bottom,0px))}
+  h1{font-size:1.35rem}
+  input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{font-size:16px}
+  .btn{padding:10px 16px}
+  .btn.small{padding:6px 12px}
+  .chip{padding:7px 14px}
+  nav#nav{position:fixed;left:0;right:0;bottom:0;z-index:15;margin:0;gap:0;flex-wrap:nowrap;justify-content:space-around;
+    background:var(--panel);border-top:1px solid var(--line);padding:4px max(6px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-right,0px))}
+  nav#nav a,nav#nav .more-btn{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:.68rem;border-radius:8px;min-width:0;white-space:nowrap}
+  nav#nav .more-btn{border:0;background:none;color:var(--muted);font:inherit;font-size:.68rem;font-weight:500;cursor:pointer}
+  nav#nav a[aria-current="page"],nav#nav .more-btn[aria-current="page"]{background:none}
+  nav#nav a[aria-current="page"] .nav-ic,nav#nav .more-btn[aria-current="page"] .nav-ic{background:var(--accent-soft)}
+  .nav-ic{display:block;width:44px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center}
+  .nav-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  nav#nav a.sec{display:none}
+  nav#nav .more-btn{display:flex}
+  nav#nav.open a.sec{display:flex;position:fixed;right:12px;width:230px;flex-direction:row;gap:10px;justify-content:flex-start;font-size:.95rem;
+    background:var(--panel);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px 12px}
+  nav#nav.open a.sec .nav-ic{width:30px}
+  nav#nav.open a.sec:nth-of-type(6){bottom:calc(72px + env(safe-area-inset-bottom,0px) + 104px)}
+  nav#nav.open a.sec:nth-of-type(7){bottom:calc(72px + env(safe-area-inset-bottom,0px) + 52px)}
+  nav#nav.open a.sec:nth-of-type(8){bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  .drawer{width:100%;border-left:0;padding-top:max(18px,env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+  .panel{padding:14px}
+  .ev{grid-template-columns:56px 1fr auto;gap:10px}
+}
+@media (display-mode:standalone){.install-only{display:none}}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+
+</head>
+<body>
+<header><div class="wrap bar">
+  <div class="brand">Studienplaner <small>B.Eng. Technische Informatik · BHT</small></div>
+  <nav id="nav">
+    <a href="#ueberblick"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span><span class="lbl">Überblick</span></a>
+    <a href="#woche"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><span class="lbl">Stundenplan</span></a>
+    <a href="#pruefungen"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/></svg></span><span class="lbl">Prüfungen</span></a>
+    <a href="#module"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="lbl">Module</span></a>
+    <a href="#termine"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5"/></svg></span><span class="lbl">Termine</span></a>
+    <a href="#plan" class="sec"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/></svg></span><span class="lbl">Semesterplan</span></a>
+    <a href="#ideen" class="sec"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg></span><span class="lbl">Ideen</span></a>
+    <a href="#handy" class="sec"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="lbl">App &amp; Erinnerungen</span></a>
+    <button type="button" class="more-btn" data-more="1" aria-expanded="false"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></span><span class="lbl">Mehr</span></button>
+  </nav>
+</div></header>
+
+<main class="wrap" id="app">
+  <div class="panel"><h2>Daten werden geladen …</h2><p class="muted">Module, Termine und Aufgaben kommen aus dem gespeicherten Planer.</p></div>
+</main>
+<div id="drawerRoot"></div>
+<button class="btn primary fab" id="fab" hidden>Assistent</button>
+<div id="asstRoot"></div>
+
+<script>
+(function(){
+"use strict";
+const SEMS=[
+  {k:"WS26",l:"WS 2026/27",n:7},
+  {k:"SS27",l:"SS 2027",n:8},
+  {k:"WS27",l:"WS 2027/28",n:9},
+  {k:"SS28",l:"SS 2028",n:10}
+];
+const STATUS=[
+  {k:"läuft",l:"Läuft gerade",c:"s-läuft"},
+  {k:"offen",l:"Noch offen",c:"s-offen"},
+  {k:"unklar",l:"Status prüfen",c:"s-unklar"},
+  {k:"nicht bestanden",l:"Nicht bestanden",c:"s-nb"},
+  {k:"bestanden",l:"Bestanden",c:"s-bestanden"}
+];
+const TYPES=["Klausur","Abgabe","Termin","Zeitraum"];
+const TOTAL_ECTS=210;
+const state={ideas:[],sched:null,weekOff:0,mods:[],events:[],loaded:{m:false,e:false},db:null,err:"",slow:false,filter:"noch",calMonth:null,openMod:null,editEv:null};
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const stCls=k=>(STATUS.find(s=>s.k===k)||STATUS[2]).c;
+const stLbl=k=>(STATUS.find(s=>s.k===k)||STATUS[2]).l;
+const semLbl=k=>k==="done"?"Abgeschlossen":(SEMS.find(s=>s.k===k)||{l:"Nicht eingeplant"}).l;
+const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const parseD=s=>{const [y,m,d]=String(s).split("-").map(Number);return new Date(y,(m||1)-1,d||1)};
+const daysUntil=s=>Math.round((parseD(s)-parseD(todayISO()))/864e5);
+const MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+const MONL=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const modName=id=>{const m=state.mods.find(x=>x.id===id);return m?m.name:""};
+const uid=()=>Math.random().toString(36).slice(2,10);
+
+/* ---------- routing ---------- */
+const VIEWS=["ueberblick","woche","pruefungen","module","plan","termine","ideen","handy"];
+function view(){const h=location.hash.slice(1);return VIEWS.includes(h)?h:"ueberblick"}
+window.addEventListener("hashchange",render);
+
+/* ---------- data ---------- */
+async function boot(){
+  let db=null;
+  try{await window.LocalDB.ready;db=window.LocalDB}catch(e){db=null}
+  if(!db){state.err="Der Speicher auf diesem Gerät ist nicht erreichbar. Prüfe, ob der Browser im privaten Modus läuft.";render();return}
+  state.db=db;
+  const t=setTimeout(()=>{state.slow=true;render()},10000);
+  const done=()=>{if(state.loaded.m&&state.loaded.e){clearTimeout(t);state.slow=false}};
+  const onErr=e=>{clearTimeout(t);state.err="Die Daten konnten nicht geladen werden ("+(e&&e.code||"Fehler")+").";render()};
+  db.collection("modules").onSnapshot(s=>{state.mods=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(!s.metadata.fromCache){state.loaded.m=true;done()}render()},onErr);
+  db.collection("ideas").onSnapshot(s=>{state.ideas=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(view()==="ideen"&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest(".idea"))return;render()},()=>{});
+  db.doc("schedule/wise2026").onSnapshot(s=>{state.sched=s.exists?s.data():null;render()},()=>{});
+  db.collection("events").onSnapshot(s=>{state.events=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(!s.metadata.fromCache){state.loaded.e=true;done()}render()},onErr);
+}
+const busy={};
+async function saveMod(id,patch){
+  const m=state.mods.find(x=>x.id===id); if(!m||!state.db)return;
+  Object.assign(m,patch); render();
+  while(busy[id]) await busy[id];
+  busy[id]=state.db.doc("modules/"+id).update(patch).catch(e=>flash("Speichern fehlgeschlagen: "+(e.code||e))).finally(()=>{busy[id]=null});
+  await busy[id];
+}
+async function saveEvent(ev){
+  if(!state.db)return;
+  const id=ev.id||uid(); const body=Object.assign({},ev); delete body.id;
+  try{await state.db.doc("events/"+id).set(body)}catch(e){flash("Speichern fehlgeschlagen: "+(e.code||e))}
+}
+async function delEvent(id){try{await state.db.doc("events/"+id).delete()}catch(e){flash("Löschen fehlgeschlagen")}}
+let flashMsg="";function flash(m){flashMsg=m;render();setTimeout(()=>{flashMsg="";render()},4000)}
+
+/* ---------- views ---------- */
+function render(){
+  const v=view();
+  document.querySelectorAll("#nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+v?"page":"false"));
+  const nv=document.getElementById("nav");nv.classList.remove("open");const mb=nv.querySelector(".more-btn");mb.setAttribute("aria-expanded","false");mb.setAttribute("aria-current",["plan","ideen","handy"].includes(v)?"page":"false");
+  const app=document.getElementById("app");
+  let html="";
+  if(flashMsg) html+=`<div class="notice" role="status" style="margin-bottom:16px">${esc(flashMsg)}</div>`;
+  if(state.err){app.innerHTML=html+`<div class="panel"><h2>Planer nicht verfügbar</h2><p class="muted">${esc(state.err)}</p></div>`;return}
+  if(state.slow) html+=`<div class="notice" style="margin-bottom:16px">Die Verbindung zum Speicher dauert länger. Angezeigte Daten sind evtl. nicht aktuell.</div>`;
+  if(!state.mods.length&&!state.loaded.m){app.innerHTML=html+`<div class="panel"><h2>Daten werden geladen …</h2></div>`;return}
+  if(!state.mods.length){app.innerHTML=html+`<div class="panel"><h2>Noch keine Module</h2><p class="muted">Sobald deine Module aus Polli eingetragen sind, erscheinen sie hier. Du kannst über „Termine“ schon Prüfungen und Abgaben anlegen.</p></div>`;return}
+  html+= v==="handy"?vHandy(): v==="ideen"?vIdeen(): v==="woche"?vWoche(): v==="pruefungen"?vPruefungen(): v==="module"?vModules(): v==="plan"?vPlan(): v==="termine"?vTermine(): vOverview();
+  app.innerHTML=html;
+  renderDrawer();
+}
+
+function ectsBy(st){return state.mods.filter(m=>m.status===st).reduce((a,m)=>a+(+m.ects||0),0)}
+function vOverview(){
+  const done=ectsBy("bestanden"), run=ectsBy("läuft"), open=ectsBy("offen")+ectsBy("nicht bestanden"), unk=ectsBy("unklar");
+  const pct=x=>Math.min(100,x/TOTAL_ECTS*100).toFixed(1)+"%";
+  const t=todayISO();
+  const up=state.events.filter(e=>(e.end||e.date)>=t).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||""))).slice(0,7);
+  const tasks=[];state.mods.forEach(m=>(m.tasks||[]).forEach(k=>{if(!k.done)tasks.push({m,k})}));
+  const check=state.mods.filter(m=>m.status==="unklar");
+  const cur=state.mods.filter(m=>m.status==="läuft"||m.planSem==="WS26");
+  return `<div class="stack">
+  <div><div class="eyebrow">7. Fachsemester · WS 2026/27</div><h1>Hallo Hendrik, hier steht dein Studium.</h1>
+  <p class="lead">Alles in einem Blick: was bestanden ist, was dieses Semester ansteht und welche Termine als Nächstes kommen.</p></div>
+  ${check.length?`<div class="notice"><b>${check.length} Module ohne geklärten Status.</b> Die Liste stammt aus deinen Studienordnern. Ob du sie bestanden hast, steht erst fest, wenn die Polli-Daten da sind oder du den Status selbst setzt.</div>`:""}
+  <div class="grid g2">
+    <section class="panel"><h2>Fortschritt <span class="mono muted num" style="font-size:.85rem">${done} / ${TOTAL_ECTS} ECTS</span></h2>
+      <div class="progress" aria-label="ECTS-Fortschritt"><span style="width:${pct(done)};background:var(--ok)"></span><span style="width:${pct(run)};background:var(--info)"></span><span style="width:${pct(open)};background:var(--warn)"></span><span style="width:${pct(unk)};background:var(--muted);opacity:.35"></span></div>
+      <div class="legend"><span><i style="background:var(--ok)"></i>Bestanden</span><span><i style="background:var(--info)"></i>Läuft</span><span><i style="background:var(--warn)"></i>Offen</span><span><i style="background:var(--muted);opacity:.35"></i>Prüfen</span></div>
+      <div class="kpis">
+        <div class="kpi"><b>${state.mods.filter(m=>m.status==="bestanden").length}</b><span>Module bestanden</span></div>
+        <div class="kpi"><b>${state.mods.filter(m=>m.status==="läuft").length}</b><span>laufen gerade</span></div>
+        <div class="kpi"><b>${state.mods.filter(m=>m.status==="offen"||m.status==="nicht bestanden").length}</b><span>noch offen</span></div>
+        <div class="kpi"><b>${check.length}</b><span>Status prüfen</span></div>
+      </div>
+      <p class="ann" style="margin:12px 0 0">Annahme: 210 ECTS Gesamtumfang, 5 ECTS je Modul, bis die echten Werte eingetragen sind.</p>
+    </section>
+    ${state.sched?(()=>{const d=parseD(t);let sl=slotsOn(d).filter(x=>!x.off),lbl="Heute";if(!sl.length){const n=new Date(d);for(let i=1;i<8&&!sl.length;i++){n.setDate(n.getDate()+1);sl=slotsOn(n).filter(x=>!x.off);lbl=i===1?"Morgen":["So","Mo","Di","Mi","Do","Fr","Sa"][n.getDay()]+", "+n.getDate()+". "+MON[n.getMonth()]}}
+      return `<section class="panel"><h2>${esc(lbl)} an der Uni <a class="btn small" href="#woche">Woche</a></h2>${sl.length?`<div class="stack" style="gap:8px">${sl.map(slotCard).join("")}</div>`:`<p class="empty">Keine Veranstaltungen in den nächsten Tagen.</p>`}</section>`})():""}
+    <section class="panel"><h2>Nächste Termine <a class="btn small" href="#termine">Alle</a></h2>
+      ${up.length?`<ul class="clean">${up.map(evRow).join("")}</ul>`:`<p class="empty">Keine anstehenden Termine. Lege Klausuren und Abgaben unter „Termine“ an.</p>`}
+    </section>
+    <section class="panel"><h2>Offene Aufgaben <span class="mono muted num" style="font-size:.85rem">${tasks.length}</span></h2>
+      ${tasks.length?`<ul class="clean">${tasks.slice(0,10).map(({m,k})=>`<li class="task"><input type="checkbox" id="tk-${esc(m.id)}-${esc(k.id)}" data-tm="${esc(m.id)}" data-tk="${esc(k.id)}"><span><label for="tk-${esc(m.id)}-${esc(k.id)}" style="display:inline;color:var(--ink);font-size:.95rem">${esc(k.t)}</label> <span class="muted" style="font-size:.8rem">· ${esc(m.name)}</span></span></li>`).join("")}</ul>`:`<p class="empty">Keine offenen Aufgaben. Aufgaben legst du im jeweiligen Modul an.</p>`}
+    </section>
+    <section class="panel"><h2>Dieses Semester <a class="btn small" href="#plan">Plan</a></h2>
+      ${cur.length?`<ul class="clean">${cur.map(m=>`<li class="ev" style="grid-template-columns:1fr auto"><div class="t"><button class="name" data-open="${esc(m.id)}" style="all:unset;cursor:pointer;font-weight:500">${esc(m.name)}</button><div class="meta">${m.todo?esc(m.todo)+" · ":""}${m.altk?m.altk+" Altklausuren":"keine Altklausuren"}</div></div><span class="pill ${stCls(m.status)}">${esc(stLbl(m.status))}</span></li>`).join("")}</ul>`:`<p class="empty">Noch nichts für WS 2026/27 eingeplant.</p>`}
+    </section>
+  </div></div>`;
+}
+function evRow(e){
+  const d=parseD(e.date), n=daysUntil(e.date);
+  const when=n<0&&e.end?"läuft":n===0?"heute":n===1?"morgen":"in "+n+" Tagen";
+  return `<li class="ev"><div class="date"><b class="num">${d.getDate()}</b>${MON[d.getMonth()]}</div>
+  <div class="t"><div><span class="pill t-${esc(e.type)}">${esc(e.type)}</span> <strong>${esc(e.title)}</strong></div>
+  <div class="meta">${e.time?esc(e.time)+" Uhr":""}${e.end?"bis "+esc(fmtD(e.end)):""}${e.place?" · "+esc(e.place):""}${e.moduleId&&modName(e.moduleId)?" · "+esc(modName(e.moduleId)):""}</div>
+  ${e.assumed?`<div class="ann">Annahme: ${esc(e.assumed)}</div>`:""}</div>
+  <div class="days muted">${when}</div></li>`;
+}
+const fmtD=s=>{const d=parseD(s);return d.getDate()+". "+MON[d.getMonth()]+" "+d.getFullYear()};
+
+const isoD=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+function mondayOf(off){const d=parseD(todayISO());d.setDate(d.getDate()-((d.getDay()+6)%7)+7*off);return d}
+function slotsOn(date){
+  const s=state.sched; if(!s)return [];
+  const iso=isoD(date), dow=(date.getDay()+6)%7+1, even=isoWeek(date)%2===0;
+  if(iso<s.lectureStart||iso>s.lectureEnd)return [];
+  return (s.slots||[]).filter(x=>x.day===dow).map(x=>Object.assign({},x,{off:x.rhythm==="gerade"&&!even||x.rhythm==="ungerade"&&even})).sort((a,b)=>a.start.localeCompare(b.start));
+}
+function slotCard(x){
+  return `<div class="slot${x.off?" off":""}"><div class="mono num" style="font-size:.78rem">${esc(x.start)}–${esc(x.end)}</div>
+  <div style="font-weight:500">${x.moduleId&&modName(x.moduleId)?`<button class="name" data-open="${esc(x.moduleId)}" style="all:unset;cursor:pointer">${esc(x.title)}</button>`:esc(x.title)}</div>
+  <div class="meta"><span>${esc(x.kind)}</span><span>${esc(x.room)}</span>${x.rhythm!=="w"?`<span>${x.rhythm==="gerade"?"gerade Wochen":"ungerade Wochen"}</span>`:""}</div>
+  ${x.off?`<div class="ann" style="color:var(--muted)">Diese Woche nicht</div>`:""}${x.status&&x.status!=="zugelassen"?`<div class="ann">Polli: ${esc(x.status)}</div>`:""}</div>`;
+}
+function vWoche(){
+  if(!state.sched)return `<div class="panel"><h2>Kein Stundenplan</h2><p class="muted">Der Stundenplan ist noch nicht eingetragen.</p></div>`;
+  const mon=mondayOf(state.weekOff), kw=isoWeek(mon), fri=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+4);
+  const t=todayISO(); const DN=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+  const s=state.sched; const inLect=isoD(fri)>=s.lectureStart&&isoD(mon)<=s.lectureEnd;
+  let cols="";
+  for(let i=0;i<5;i++){const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);const iso=isoD(d);
+    const ev=state.events.filter(e=>e.date===iso&&e.type!=="Zeitraum");const sl=slotsOn(d);
+    cols+=`<section class="day${iso===t?" today":""}"><header><h3>${DN[i]}</h3><span class="mono muted num">${d.getDate()}. ${MON[d.getMonth()]}</span></header>
+    ${ev.map(e=>`<div class="slot ev-${esc(e.type)}"><div class="mono num" style="font-size:.78rem">${esc(e.time||"ganztägig")}</div><div style="font-weight:500">${esc(e.title)}</div>${e.place?`<div class="meta"><span>${esc(e.place)}</span></div>`:""}</div>`).join("")}
+    ${sl.map(slotCard).join("")||(ev.length?"":`<p class="empty">Frei</p>`)}</section>`}
+  return `<div class="stack"><div><div class="eyebrow">${esc(s.semester)} · Quelle: ${esc(s.source||"")}</div><h1>Stundenplan</h1>
+  <p class="lead">Deine Woche mit Vorlesungen, Übungen und Prüfungen. Übungen im 14-Tage-Rhythmus erscheinen nur in den passenden Wochen.</p></div>
+  <div class="cal-head"><button class="btn small" data-wk="-1" aria-label="Vorherige Woche">‹</button>
+  <h2 style="text-align:center">KW ${kw} · ${kw%2===0?"gerade":"ungerade"} Woche<br><span class="mono muted" style="font-size:.8rem;font-weight:400">${mon.getDate()}. ${MON[mon.getMonth()]} – ${fri.getDate()}. ${MON[fri.getMonth()]} ${fri.getFullYear()}</span></h2>
+  ${state.weekOff?`<button class="btn small" data-wk="0">Heute</button>`:""}<button class="btn small" data-wk="1" aria-label="Nächste Woche">›</button></div>
+  ${inLect?"":`<div class="notice">Diese Woche liegt außerhalb der Vorlesungszeit (${esc(fmtD(s.lectureStart))} bis ${esc(fmtD(s.lectureEnd))}).</div>`}
+  <div class="week">${cols}</div></div>`;
+}
+
+const ISTAT=["Idee","Will ich","Später","Umgesetzt","Verworfen"];
+const ICLS={"Idee":"s-unklar","Will ich":"s-läuft","Später":"s-offen","Umgesetzt":"s-bestanden","Verworfen":"s-nb"};
+function vIdeen(){
+  const groups=[];state.ideas.slice().sort((a,b)=>(a.order||999)-(b.order||999)).forEach(i=>{const g=i.group||"Eigene Ideen";let G=groups.find(x=>x.g===g);if(!G)groups.push(G={g,items:[]});G.items.push(i)});
+  return `<div class="stack"><div><div class="eyebrow">${state.ideas.length} Ideen</div><h1>Ideen für die App</h1>
+  <p class="lead">Mögliche Updates zum Nachlesen. Ändere Titel und Beschreibung direkt im Text, setze einen Status oder füge eigene Ideen hinzu. Hier wird nichts automatisch gebaut.</p></div>
+  <form class="panel addrow" id="f-addidea" style="flex-wrap:wrap"><input type="text" id="f-newidea" placeholder="Neue Idee, z. B. Lerngruppe planen" aria-label="Neue Idee" style="min-width:200px"><button class="btn primary" type="submit">Idee hinzufügen</button></form>
+  ${groups.map(G=>`<section class="panel"><h2>${esc(G.g)}</h2><ul class="clean">${G.items.map(i=>`<li class="idea ev" style="grid-template-columns:1fr auto">
+    <div class="t" style="display:flex;flex-direction:column;gap:4px">
+      <input type="text" class="ideain" data-idea="${esc(i.id)}" data-f="title" value="${esc(i.title||"")}" aria-label="Titel" style="font-weight:600;background:transparent;border-color:transparent;padding:4px 6px">
+      <textarea class="ideain" data-idea="${esc(i.id)}" data-f="note" aria-label="Beschreibung" style="min-height:44px;background:transparent;border-color:transparent;padding:4px 6px;font-size:.9rem;color:var(--muted)">${esc(i.note||"")}</textarea></div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <select class="ideain" data-idea="${esc(i.id)}" data-f="status" aria-label="Status" style="width:auto">${ISTAT.map(s=>`<option${(i.status||"Idee")===s?" selected":""}>${s}</option>`).join("")}</select>
+      <button class="btn small danger" data-delidea="${esc(i.id)}">Löschen</button></div></li>`).join("")}</ul></section>`).join("")||`<p class="empty">Noch keine Ideen.</p>`}</div>`;
+}
+async function saveIdea(id,patch){if(!state.db)return;const i=state.ideas.find(x=>x.id===id);if(i)Object.assign(i,patch);try{await state.db.doc("ideas/"+id).update(patch)}catch(e){flash("Speichern fehlgeschlagen")}}
+
+/* ---------- App & Erinnerungen ---------- */
+function vHandy(){
+  const R=window.Reminders,I=window.SPInstall,s=R.settings(),perm=R.permission();
+  const inst=I.standalone(), ios=I.ios();
+  const fmt=t=>{const d=new Date(t);return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()]+", "+d.getDate()+". "+MON[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+  const up=R.upcoming(5);
+  const meta=window.LocalDB.meta();
+  const lastSave=meta.updated?new Date(meta.updated):null;
+  const chk=(name,val,on,label)=>`<label><input type="checkbox" data-set="${name}" value="${val}" ${on?"checked":""}> ${label}</label>`;
+  let installBox;
+  if(inst) installBox=`<p><span class="ok-dot"></span>Die App ist installiert und läuft wie eine normale App.</p>`;
+  else if(I.canPrompt()) installBox=`<p class="muted">Leg den Planer als App auf deinen Homescreen. Dann öffnet er sich ohne Browserleiste und funktioniert auch offline.</p><div class="btnrow"><button class="btn primary" data-act="install">App installieren</button></div>`;
+  else if(ios) installBox=`<p class="muted">So kommt der Planer auf deinen iPhone-Homescreen:</p><ol class="steps"><li>Diese Seite in <b>Safari</b> öffnen.</li><li>Unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil).</li><li><b>Zum Home-Bildschirm</b> wählen und bestätigen.</li><li>Ab jetzt die App über das neue Icon öffnen.</li></ol>`;
+  else installBox=`<p class="muted">So kommt der Planer auf deinen Homescreen:</p><ol class="steps"><li>Diese Seite in <b>Chrome</b> öffnen.</li><li>Oben rechts auf <b>⋮</b> tippen.</li><li><b>App installieren</b> bzw. <b>Zum Startbildschirm hinzufügen</b> wählen.</li></ol>`;
+  let remBox;
+  if(!R.supported()) remBox=`<p class="muted">Dieser Browser kann keine Mitteilungen anzeigen.${ios&&!inst?" Auf dem iPhone geht das erst, wenn die App auf dem Homescreen installiert ist (siehe oben).":""}</p>`;
+  else if(perm==="denied") remBox=`<p class="muted">Mitteilungen sind für diese App blockiert. Du kannst sie in den Einstellungen des Handys bei der App wieder erlauben.</p>`;
+  else remBox=`
+    <div class="switch"><div>Erinnerungen an Prüfungen und Fristen<small>${s.enabled&&perm==="granted"?"An":"Aus"}</small></div>
+      <button class="btn ${s.enabled&&perm==="granted"?"":"primary"} small" data-act="${s.enabled&&perm==="granted"?"rem-off":"rem-on"}">${s.enabled&&perm==="granted"?"Ausschalten":"Einschalten"}</button></div>
+    <div class="switch" style="display:block"><div style="margin-bottom:8px">Wann erinnern?</div>
+      <div class="checks">${chk("lead",7,s.leads.includes(7),"1 Woche vorher")}${chk("lead",3,s.leads.includes(3),"3 Tage vorher")}${chk("lead",1,s.leads.includes(1),"Am Vortag")}${chk("lead",0,s.leads.includes(0),"Am Tag selbst")}</div></div>
+    <div class="switch" style="display:block"><div style="margin-bottom:8px">Woran erinnern?</div>
+      <div class="checks">${chk("type","Klausur",s.types.includes("Klausur"),"Klausuren")}${chk("type","Abgabe",s.types.includes("Abgabe"),"Abgaben")}${chk("type","Termin",s.types.includes("Termin"),"Termine")}${chk("type","Zeitraum",s.types.includes("Zeitraum"),"Zeiträume")}</div></div>
+    <div class="switch"><div>Uhrzeit der Erinnerung</div><select data-set="hour" style="width:auto">${[6,7,8,9,10,12,18,20].map(h=>`<option value="${h}" ${h===s.hour?"selected":""}>${h}:00 Uhr</option>`).join("")}</select></div>
+    <div class="btnrow"><button class="btn small" data-act="rem-test">Test-Mitteilung</button></div>`;
+  return `<div class="stack">
+  <div><div class="eyebrow">Einstellungen</div><h1>App &amp; Erinnerungen</h1><p class="lead">Installieren, Erinnerungen einstellen, Termine in den Handy-Kalender holen und deine Daten sichern.</p></div>
+  <div class="grid g2">
+  <section class="panel install-only"><h2>Auf den Homescreen</h2>${installBox}</section>
+  <section class="panel"><h2>Erinnerungen</h2>${remBox}
+    <p class="ann" style="margin-top:12px">${ios?"iPhone: Erinnerungen kommen, wenn du die App öffnest oder sie offen ist. Für Erinnerungen bei geschlossener App nutze vorerst den Kalender-Export.":"Android: Die App prüft ungefähr einmal am Tag im Hintergrund. Für Erinnerungen auf die Minute nutze zusätzlich den Kalender-Export."}</p>
+  </section>
+  <section class="panel"><h2>Nächste Erinnerungen</h2>${up.length?`<ul class="clean">${up.map(r=>`<li class="switch" style="display:block"><b>${esc(r.title)}</b><small>${esc(r.body)}</small><small class="mono">${fmt(r.at)}</small></li>`).join("")}</ul>`:`<p class="empty">Keine anstehenden Erinnerungen mit den aktuellen Einstellungen.</p>`}</section>
+  <section class="panel"><h2>In den Handy-Kalender</h2><p class="muted">Holt alle Klausuren, Abgaben und Termine mit Weckern in deinen Kalender (iPhone, Android, Google, Outlook). Das klappt auch bei geschlossener App zuverlässig.</p>
+    <div class="btnrow"><button class="btn primary" data-act="ics-exams">Prüfungen &amp; Abgaben</button><button class="btn" data-act="ics-all">Alle Termine</button></div>
+    <p class="ann" style="margin-top:10px">Nach Änderungen erneut exportieren. Der Kalender ersetzt gleiche Termine, statt sie doppelt anzulegen (je nach Kalender-App).</p></section>
+  <section class="panel"><h2>Deine Daten</h2>
+    <dl class="kv"><dt>Verbindung</dt><dd>${navigator.onLine?'<span class="ok-dot"></span>Online':'<span class="off-dot"></span>Offline, alles funktioniert trotzdem'}</dd>
+    <dt>Gespeichert</dt><dd>auf diesem Gerät${lastSave?", zuletzt "+lastSave.toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}):""}</dd>
+    <dt>Abgleich</dt><dd>noch keiner zwischen Handy und Laptop</dd></dl>
+    <div class="btnrow"><button class="btn small" data-act="backup">Sicherung herunterladen</button><label class="btn small" style="flex-direction:row;color:var(--ink);font-size:.85rem">Sicherung laden<input type="file" accept="application/json,.json" data-act-file="restore" hidden></label></div>
+  </section>
+  </div></div>`;
+}
+async function handyAct(a,el){
+  const R=window.Reminders;
+  if(a==="install"){await window.SPInstall.prompt();render();return}
+  if(a==="rem-on"){const p=await R.enable();if(p!=="granted")flash(p==="denied"?"Mitteilungen wurden abgelehnt.":"Mitteilungen sind hier nicht verfügbar.");render();return}
+  if(a==="rem-off"){R.disable();render();return}
+  if(a==="rem-test"){const p=await R.test();if(p!=="granted")flash("Mitteilungen sind nicht erlaubt.");return}
+  if(a==="ics-exams"){window.SPTools.exportICS(["Klausur","Abgabe"]);return}
+  if(a==="ics-all"){window.SPTools.exportICS(null);return}
+  if(a==="backup"){window.SPTools.exportBackup();return}
+}
+document.addEventListener("change",async e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.actFile==="restore"&&t.files&&t.files[0]){
+    try{await window.SPTools.importBackup(t.files[0]);flash("Sicherung geladen.")}catch(err){flash("Die Datei ist keine gültige Sicherung.")}
+    t.value="";return}
+  if(!t.dataset||!t.dataset.set)return;
+  const R=window.Reminders,s=R.settings();
+  if(t.dataset.set==="hour")s.hour=+t.value;
+  if(t.dataset.set==="lead"){const v=+t.value;s.leads=t.checked?[...new Set([...s.leads,v])].sort((a,b)=>b-a):s.leads.filter(x=>x!==v)}
+  if(t.dataset.set==="type"){s.types=t.checked?[...new Set([...s.types,t.value])]:s.types.filter(x=>x!==t.value)}
+  R.save(s);render();
+});
+
+function vPruefungen(){
+  const t=todayISO();
+  const cur=state.mods.filter(m=>m.planSem==="WS26"&&m.status!=="bestanden");
+  const exams=state.events.filter(e=>e.type==="Klausur");
+  const rows=cur.map(m=>({m,e:exams.filter(x=>x.moduleId===m.id).sort((a,b)=>a.date.localeCompare(b.date)).find(x=>x.date>=t)||exams.filter(x=>x.moduleId===m.id).sort((a,b)=>b.date.localeCompare(a.date))[0]||null}));
+  rows.sort((a,b)=>a.e&&b.e?(a.e.date+(a.e.time||"")).localeCompare(b.e.date+(b.e.time||"")):a.e?-1:b.e?1:a.m.name.localeCompare(b.m.name,"de"));
+  const missing=rows.filter(r=>!r.e).length;
+  const others=exams.filter(e=>!cur.some(m=>m.id===e.moduleId)&&e.date>=t).sort((a,b)=>a.date.localeCompare(b.date));
+  const pz=state.events.find(e=>e.type==="Zeitraum"&&(e.end||e.date)>=t);
+  const row=({m,e})=>{const d=e?parseD(e.date):null,n=e?daysUntil(e.date):null;
+    return `<li class="ev"><div class="date">${e?`<b class="num">${d.getDate()}</b>${MON[d.getMonth()]}`:`<b>?</b>offen`}</div>
+    <div class="t"><div><strong>${esc(m.name)}</strong></div>
+    <div class="meta">${m.todo?`<span>Noch zu tun: ${esc(m.todo)}</span>`:""}${e?`<span>${e.time?esc(e.time)+" Uhr":"Uhrzeit fehlt"}</span>${e.place?`<span>${esc(e.place)}</span>`:""}`:""}</div>
+    ${e&&e.notes?`<div style="font-size:.85rem;margin-top:2px">${/zurückgetreten|nicht angemeldet|ACHTUNG/i.test(e.notes)?`<span class="pill s-nb">Anmeldung prüfen</span> `:""}${esc(e.notes)}</div>`:""}
+    ${(()=>{const sec=exams.filter(x=>x.moduleId===m.id&&e&&x.id!==e.id&&x.date>e.date).sort((a,b)=>a.date.localeCompare(b.date))[0];return sec?`<div class="meta" style="margin-top:2px"><span>Nächster Termin: ${esc(fmtD(sec.date))}${sec.time?", "+esc(sec.time):""}</span></div>`:""})()}
+    ${e&&e.assumed?`<div class="ann">Annahme: ${esc(e.assumed)}</div>`:""}</div>
+    <div class="days" style="text-align:right">${e?`<div class="muted">${n<0?"vorbei":n===0?"heute":n===1?"morgen":"in "+n+" Tagen"}</div><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button>`:`<span class="pill s-offen">Termin fehlt</span><br><button class="btn small" style="margin-top:4px" data-newexam="${esc(m.id)}">Eintragen</button>`}</div></li>`};
+  return `<div class="stack"><div><div class="eyebrow">WS 2026/27 · ${cur.length} Module</div><h1>Prüfungen</h1>
+  <p class="lead">Alle Module, die du dieses Semester abschließen willst, mit ihrem Prüfungstermin und dem, was vorher noch fehlt.</p></div>
+  ${pz?`<div class="notice">${esc(pz.title)}: ${esc(fmtD(pz.date))}${pz.end?" bis "+esc(fmtD(pz.end)):""}.${pz.assumed?" "+esc(pz.assumed):""}</div>`:""}
+  <section class="panel"><h2>Deine Prüfungen <span class="mono muted num" style="font-size:.85rem">${cur.length-missing} von ${cur.length} mit Termin</span></h2>
+  ${rows.length?`<ul class="clean">${rows.map(row).join("")}</ul>`:`<p class="empty">Für WS 2026/27 sind keine Module eingeplant. Lege sie im Semesterplan fest.</p>`}</section>
+  ${others.length?`<section class="panel"><h2>Weitere Prüfungstermine</h2><ul class="clean">${others.map(evRow).join("")}</ul></section>`:""}
+  </div>`;
+}
+
+function vModules(){
+  const f=state.filter;
+  const list=state.mods.filter(m=>f==="alle"||(f==="noch"?m.status!=="bestanden":m.status===f)).sort((a,b)=>STATUS.findIndex(s=>s.k===a.status)-STATUS.findIndex(s=>s.k===b.status)||a.name.localeCompare(b.name,"de"));
+  const cnt=k=>state.mods.filter(m=>m.status===k).length;
+  return `<div><div class="eyebrow">${state.mods.length} Module</div><h1>Module</h1><p class="lead">Jedes Modul hat eine Themenliste zum Abhaken. Tippe ein Modul an, um Themen, Status, Note, Notizen und Aufgaben zu pflegen.</p></div>
+  <div class="toolbar" role="group" aria-label="Nach Status filtern">
+    <button class="chip" data-filter="noch" aria-pressed="${f==="noch"}">Alle nicht bestandenen ${state.mods.filter(m=>m.status!=="bestanden").length}</button>
+    <button class="chip" data-filter="alle" aria-pressed="${f==="alle"}">Alle ${state.mods.length}</button>
+    ${STATUS.map(s=>`<button class="chip" data-filter="${esc(s.k)}" aria-pressed="${f===s.k}">${esc(s.l)} ${cnt(s.k)}</button>`).join("")}
+  </div>
+  <div class="mods">${list.map(m=>{const open=(m.tasks||[]).filter(t=>!t.done).length;const tp=m.topics||[];const tl=tp.filter(t=>t.done).length;const rest=tp.filter(t=>!t.done);return `<button class="mod" data-open="${esc(m.id)}">
+    <div class="row"><span class="mono muted" style="font-size:.78rem">${esc(m.code||"—")}</span><span class="pill ${stCls(m.status)}">${esc(stLbl(m.status))}</span></div>
+    <h3>${esc(m.name)}</h3>
+    ${m.todo?`<div style="font-size:.85rem">Noch zu tun: ${esc(m.todo)}</div>`:""}
+    ${tp.length?`<div><div class="progress" style="height:6px;margin:2px 0 4px" aria-label="Themen gelernt"><span style="width:${(tl/tp.length*100).toFixed(0)}%;background:var(--ok)"></span></div><div class="meta"><span>${tl} von ${tp.length} Themen gelernt</span></div>
+    ${rest.length?`<div class="muted" style="font-size:.82rem;margin-top:4px">Offen: ${rest.slice(0,3).map(t=>esc(t.t)).join(" · ")}${rest.length>3?" …":""}</div>`:""}</div>`:m.status!=="bestanden"?`<div class="muted" style="font-size:.82rem">Noch keine Themen hinterlegt.</div>`:""}
+    <div class="meta"><span>${esc(semLbl(m.planSem))}</span><span>${+m.ects||0} ECTS</span>${m.grade?`<span>Note ${esc(m.grade)}</span>`:""}${m.altk?`<span>${m.altk} Altkl.</span>`:""}${open?`<span>${open} Aufg.</span>`:""}</div>
+  </button>`}).join("")||`<p class="empty">Keine Module mit diesem Status.</p>`}</div>`;
+}
+
+function vPlan(){
+  const cols=[{k:"",l:"Nicht eingeplant",sub:"offen oder ungeklärt"},...SEMS.map(s=>({k:s.k,l:s.l,sub:s.n+". Fachsemester"})),{k:"done",l:"Abgeschlossen",sub:"bestanden"}];
+  const order=["",...SEMS.map(s=>s.k)];
+  return `<div><div class="eyebrow">Umsetzungsplan</div><h1>Semesterplan</h1><p class="lead">Verteile die offenen Module auf die kommenden Semester. Mit den Pfeilen schiebst du ein Modul ein Semester vor oder zurück. Ganz links stehen die Module ohne Semester.</p></div>
+  <div class="notice" style="margin:16px 0">Die Regelstudienzeit endet nach dem 7. Semester. Praxisphase und Bachelorarbeit sind eingeplant, die genaue Lage nach Studienordnung bitte prüfen.</div>
+  <div class="plan">${cols.map(c=>{
+    const ms=state.mods.filter(m=>c.k==="done"?m.status==="bestanden":(m.status!=="bestanden"&&(m.planSem||"")===c.k));
+    const e=ms.reduce((a,m)=>a+(+m.ects||0),0);
+    return `<section class="col"><header><div><h3>${esc(c.l)}</h3><div class="eyebrow">${esc(c.sub)}</div></div><span class="mono muted num">${e} ECTS</span></header>
+    ${ms.map(m=>{const i=order.indexOf(m.planSem||"");return `<div class="pcard"><div class="row"><button class="name" data-open="${esc(m.id)}">${esc(m.name)}</button></div>
+      <div class="row"><span class="pill ${stCls(m.status)}">${esc(stLbl(m.status))}</span>${c.k==="done"?"":`<span class="mv">
+      <button title="Früher einplanen" aria-label="${esc(m.name)} früher einplanen" data-mv="${esc(m.id)}" data-to="${esc(order[Math.max(0,i-1)])}" ${i<=0?"disabled":""}>‹</button>
+      <button title="Später einplanen" aria-label="${esc(m.name)} später einplanen" data-mv="${esc(m.id)}" data-to="${esc(order[Math.min(order.length-1,i+1)])}" ${i>=order.length-1?"disabled":""}>›</button></span>`}</div></div>`}).join("")||`<p class="empty">Leer</p>`}
+    </section>`}).join("")}</div>`;
+}
+
+function vTermine(){
+  const t=todayISO();
+  if(!state.calMonth){const d=new Date();state.calMonth=[d.getFullYear(),d.getMonth()]}
+  const [y,mo]=state.calMonth; const first=new Date(y,mo,1); const start=new Date(y,mo,1-((first.getDay()+6)%7));
+  let cells="";
+  for(let i=0;i<42;i++){
+    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
+    const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const evs=state.events.filter(e=>e.date===iso||(e.end&&e.date<=iso&&e.end>=iso));
+    cells+=`<div class="cell${d.getMonth()!==mo?" other":""}${iso===t?" today":""}"><div class="d num">${d.getDate()}</div>${evs.map(e=>`<span class="e t-${esc(e.type)}${e.end?" range":""}" title="${esc(e.title)}">${e.time&&!e.end?esc(e.time)+" ":""}${esc(e.title)}</span>`).join("")}</div>`;
+  }
+  const up=state.events.filter(e=>(e.end||e.date)>=t).sort((a,b)=>a.date.localeCompare(b.date));
+  const past=state.events.filter(e=>(e.end||e.date)<t).sort((a,b)=>b.date.localeCompare(a.date));
+  return `<div class="stack"><div><div class="eyebrow">Prüfungen, Abgaben, Fristen</div><h1>Termine</h1></div>
+  <div class="grid g2">
+  <section class="panel"><div class="cal-head"><button class="btn small" data-cal="-1" aria-label="Vorheriger Monat">‹</button><h2 style="text-align:center">${MONL[mo]} ${y}</h2><button class="btn small" data-cal="1" aria-label="Nächster Monat">›</button></div>
+    <div class="cal">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="dow">${d}</div>`).join("")}${cells}</div></section>
+  <section class="panel"><h2>Kommende Termine <button class="btn small primary" data-newev="1">Termin anlegen</button></h2>
+    ${up.length?`<ul class="clean">${up.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul>`:`<p class="empty">Noch keine Termine. Leg deine Klausuren für den 1. Prüfungszeitraum an, sobald sie feststehen.</p>`}
+    ${past.length?`<details style="margin-top:12px"><summary class="muted">Vergangene Termine (${past.length})</summary><ul class="clean">${past.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul></details>`:""}
+  </section></div></div>`;
+}
+
+/* ---------- drawer (module / event editor) ---------- */
+function renderDrawer(){
+  const root=document.getElementById("drawerRoot");
+  if(state.openMod){
+    const m=state.mods.find(x=>x.id===state.openMod); if(!m){state.openMod=null;root.innerHTML="";return}
+    const keep=document.activeElement&&root.contains(document.activeElement)?document.activeElement.id:null;
+    if(root.dataset.for==="m:"+m.id&&keep&&/^(f-notes|f-newtask|f-newtopic|f-grade|f-ects|f-todo)$/.test(keep)){ // don't clobber typing
+      refreshTasks(m); return }
+    root.dataset.for="m:"+m.id;
+    root.innerHTML=`<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+      <div class="top"><div><div class="eyebrow">${esc(m.code||"Modul")}${m.sems&&m.sems.length?" · Ordner in Sem. "+esc(m.sems.join(", ")):""}</div><h2 id="dlg-t">${esc(m.name)}</h2></div><button class="btn small" data-close="1">Schließen</button></div>
+      ${m.assumed?`<div class="ann">Annahme: ${esc(m.assumed)}</div>`:""}
+      <div class="form">
+        <label>Status<select id="f-status">${STATUS.map(s=>`<option value="${esc(s.k)}"${m.status===s.k?" selected":""}>${esc(s.l)}</option>`).join("")}</select></label>
+        <label>Eingeplant für<select id="f-sem"><option value="">Nicht eingeplant</option>${SEMS.map(s=>`<option value="${s.k}"${m.planSem===s.k?" selected":""}>${s.l}</option>`).join("")}</select></label>
+        <label>ECTS<input type="number" id="f-ects" min="0" max="30" value="${esc(m.ects??"")}"></label>
+        <label>Note<input type="text" id="f-grade" placeholder="z. B. 2,3" value="${esc(m.grade||"")}"></label>
+        <label class="full">Noch zu tun<input type="text" id="f-todo" placeholder="z. B. Übung + Klausur" value="${esc(m.todo||"")}"></label>
+        <label class="full">Notizen und Lernplan<textarea id="f-notes" placeholder="Themen, Lernplan, Hinweise vom Prof …">${esc(m.notes||"")}</textarea></label>
+      </div>
+      ${m.prereq?`<div class="notice"><b>Voraussetzung:</b> ${esc(m.prereq)}</div>`:""}
+      <div><h3 style="margin-bottom:2px">Themen</h3><p class="muted" style="margin:0 0 6px;font-size:.82rem">Haken setzen, wenn du ein Thema sicher kannst.${m.topicSrc?" Quelle: "+esc(m.topicSrc):""}</p><ul class="clean" id="topiclist"></ul>
+        <form class="addrow" id="f-addtopic"><input type="text" id="f-newtopic" placeholder="Neues Thema, z. B. Bode-Diagramm" aria-label="Neues Thema"><button class="btn" type="submit">Hinzufügen</button></form></div>
+      <div><h3 style="margin-bottom:6px">Aufgaben</h3><ul class="clean" id="tasklist"></ul>
+        <form class="addrow" id="f-addtask"><input type="text" id="f-newtask" placeholder="Neue Aufgabe, z. B. Altklausur 2024 rechnen" aria-label="Neue Aufgabe"><button class="btn" type="submit">Hinzufügen</button></form></div>
+      ${m.altk?`<p class="muted" style="margin:0;font-size:.9rem">${m.altk} Altklausuren liegen in deinem Ordner „Altklausuren“${m.altkDir?" › "+esc(m.altkDir):""}.</p>`:""}
+      <div><h3 style="margin-bottom:6px">Termine</h3>${(()=>{const ev=state.events.filter(e=>e.moduleId===m.id);return ev.length?`<ul class="clean">${ev.map(evRow).join("")}</ul>`:`<p class="empty">Keine Termine verknüpft.</p>`})()}</div>
+      <p class="status-line" id="savestate">Änderungen werden automatisch gespeichert.</p>
+    </aside>`;
+    refreshTasks(m);
+    const fn=root.querySelector("#f-notes");let tm;fn.addEventListener("input",()=>{clearTimeout(tm);tm=setTimeout(()=>saveMod(m.id,{notes:fn.value}),700)});
+    root.querySelector("#f-status").addEventListener("change",e=>{const p={status:e.target.value};if(p.status==="bestanden")p.planSem="done";else if(m.planSem==="done")p.planSem="";saveMod(m.id,p)});
+    root.querySelector("#f-sem").addEventListener("change",e=>saveMod(m.id,{planSem:e.target.value}));
+    root.querySelector("#f-ects").addEventListener("change",e=>saveMod(m.id,{ects:Number(e.target.value)||0}));
+    root.querySelector("#f-grade").addEventListener("change",e=>saveMod(m.id,{grade:e.target.value.trim()}));
+    root.querySelector("#f-todo").addEventListener("change",e=>saveMod(m.id,{todo:e.target.value.trim()}));
+    root.querySelector("#f-addtopic").addEventListener("submit",e=>{e.preventDefault();const i=root.querySelector("#f-newtopic");const v=i.value.trim();if(!v)return;i.value="";saveMod(m.id,{topics:[...(m.topics||[]),{id:uid(),t:v,done:false}]})});
+    root.querySelector("#f-addtask").addEventListener("submit",e=>{e.preventDefault();const i=root.querySelector("#f-newtask");const v=i.value.trim();if(!v)return;i.value="";saveMod(m.id,{tasks:[...(m.tasks||[]),{id:uid(),t:v,done:false}]})});
+    return;
+  }
+  if(state.editEv){
+    const e=state.editEv;
+    if(root.dataset.for==="e:"+(e.id||"new"))return;
+    root.dataset.for="e:"+(e.id||"new");
+    root.innerHTML=`<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dlg-e">
+      <div class="top"><h2 id="dlg-e">${e.id?"Termin bearbeiten":"Neuer Termin"}</h2><button class="btn small" data-close="1">Schließen</button></div>
+      <form class="form" id="f-ev">
+        <label class="full">Titel<input type="text" id="e-title" required value="${esc(e.title||"")}" placeholder="z. B. Klausur Digitale Systeme 2"></label>
+        <label>Art<select id="e-type">${TYPES.map(t=>`<option${e.type===t?" selected":""}>${t}</option>`).join("")}</select></label>
+        <label>Modul<select id="e-mod"><option value="">—</option>${state.mods.slice().sort((a,b)=>a.name.localeCompare(b.name,"de")).map(m=>`<option value="${esc(m.id)}"${e.moduleId===m.id?" selected":""}>${esc(m.name)}</option>`).join("")}</select></label>
+        <label>Datum<input type="date" id="e-date" required value="${esc(e.date||todayISO())}"></label>
+        <label>Uhrzeit<input type="time" id="e-time" value="${esc(e.time||"")}"></label>
+        <label>Bis (optional, für Zeiträume)<input type="date" id="e-end" value="${esc(e.end||"")}"></label>
+        <label>Ort / Raum<input type="text" id="e-place" value="${esc(e.place||"")}"></label>
+        <label class="full">Notiz<textarea id="e-notes">${esc(e.notes||"")}</textarea></label>
+        <div class="full" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">Speichern</button>${e.id?`<button class="btn danger" type="button" id="e-del">Löschen</button>`:""}</div>
+        <p class="full status-line" id="e-confirm" hidden></p>
+      </form></aside>`;
+    root.querySelector("#f-ev").addEventListener("submit",async ev=>{ev.preventDefault();const g=id=>root.querySelector(id).value.trim();
+      const body={id:e.id,title:g("#e-title"),type:g("#e-type"),moduleId:g("#e-mod"),date:g("#e-date"),time:g("#e-time"),end:g("#e-end"),place:g("#e-place"),notes:g("#e-notes")};
+      if(e.assumed&&body.date===e.date) body.assumed=e.assumed;
+      if(!body.title||!body.date)return; closeDrawer(); await saveEvent(body)});
+    const del=root.querySelector("#e-del");
+    if(del) del.addEventListener("click",async()=>{if(del.dataset.armed){closeDrawer();await delEvent(e.id)}else{del.dataset.armed="1";del.textContent="Wirklich löschen?"}});
+    return;
+  }
+  root.innerHTML="";root.dataset.for="";
+}
+function refreshTasks(m){
+  const tl=document.getElementById("topiclist");
+  if(tl){const tp=m.topics||[];tl.innerHTML=tp.length?tp.map(k=>`<li class="task${k.done?" done":""}"><input type="checkbox" id="dp-${esc(k.id)}" data-dtp="${esc(k.id)}"${k.done?" checked":""}><span style="flex:1"><label for="dp-${esc(k.id)}" style="display:inline;color:inherit;font-size:.95rem">${esc(k.t)}</label></span><button class="btn small" data-deltp="${esc(k.id)}" aria-label="Thema entfernen">×</button></li>`).join(""):`<li class="empty">Noch keine Themen. Füge die Themen aus Vorlesung oder Altklausuren hinzu.</li>`}
+  const ul=document.getElementById("tasklist"); if(!ul)return;
+  const ts=m.tasks||[];
+  ul.innerHTML=ts.length?ts.map(k=>`<li class="task${k.done?" done":""}"><input type="checkbox" id="dt-${esc(k.id)}" data-dtk="${esc(k.id)}"${k.done?" checked":""}><span style="flex:1"><label for="dt-${esc(k.id)}" style="display:inline;color:inherit;font-size:.95rem">${esc(k.t)}</label></span><button class="btn small" data-deltk="${esc(k.id)}" aria-label="Aufgabe entfernen">×</button></li>`).join(""):`<li class="empty">Noch keine Aufgaben.</li>`;
+}
+function closeDrawer(){state.openMod=null;state.editEv=null;renderDrawer()}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  { const mb=e.target.closest("[data-more]"); const nv=document.getElementById("nav");
+    if(mb){const o=nv.classList.toggle("open");mb.setAttribute("aria-expanded",o?"true":"false");return}
+    if(nv.classList.contains("open")&&!e.target.closest("#nav a"))nv.classList.remove("open");
+    const h=e.target.closest("[data-act]");
+    if(h){ handyAct(h.dataset.act,h); return } }
+
+  const el=e.target.closest("[data-open],[data-filter],[data-mv],[data-cal],[data-wk],[data-newev],[data-newexam],[data-editev],[data-close],[data-deltk],[data-deltp],[data-delidea]"); if(!el)return;
+  if(el.dataset.delidea){if(el.dataset.armed){state.db&&state.db.doc("ideas/"+el.dataset.delidea).delete().catch(()=>flash("Löschen fehlgeschlagen"))}else{el.dataset.armed="1";el.textContent="Wirklich löschen?"}return}
+  if(el.dataset.deltp){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{topics:(m.topics||[]).filter(t=>t.id!==el.dataset.deltp)});return}
+  if(el.dataset.open){state.openMod=el.dataset.open;state.editEv=null;renderDrawer();return}
+  if(el.dataset.filter){state.filter=el.dataset.filter;render();return}
+  if(el.dataset.mv!==undefined){saveMod(el.dataset.mv,{planSem:el.dataset.to});return}
+  if(el.dataset.wk!==undefined){state.weekOff=el.dataset.wk==="0"?0:state.weekOff+(+el.dataset.wk);render();return}
+  if(el.dataset.cal){let [y,m]=state.calMonth;m+=+el.dataset.cal;if(m<0){m=11;y--}if(m>11){m=0;y++}state.calMonth=[y,m];render();return}
+  if(el.dataset.newev){state.editEv={type:"Klausur"};state.openMod=null;renderDrawer();return}
+  if(el.dataset.newexam){state.editEv={type:"Klausur",moduleId:el.dataset.newexam,title:"Klausur "+modName(el.dataset.newexam)};state.openMod=null;renderDrawer();return}
+  if(el.dataset.editev){const ev=state.events.find(x=>x.id===el.dataset.editev);if(ev){state.editEv=Object.assign({},ev);state.openMod=null;renderDrawer()}return}
+  if(el.dataset.close){closeDrawer();return}
+  if(el.dataset.deltk){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{tasks:(m.tasks||[]).filter(t=>t.id!==el.dataset.deltk)});return}
+});
+document.addEventListener("submit",e=>{
+  if(e.target.id!=="f-addidea")return; e.preventDefault();
+  const i=document.getElementById("f-newidea");const v=i.value.trim();if(!v||!state.db)return;i.value="";
+  const max=state.ideas.reduce((a,x)=>Math.max(a,x.order||0),0);
+  state.db.doc("ideas/"+uid()).set({order:max+1,group:"Eigene Ideen",title:v,note:"",status:"Idee"}).catch(()=>flash("Speichern fehlgeschlagen"));
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.idea){const p={};p[t.dataset.f]=t.value.trim();saveIdea(t.dataset.idea,p).then(()=>{if(t.dataset.f==="status")render()});return}
+  if(t.dataset.tm){const m=state.mods.find(x=>x.id===t.dataset.tm);if(m)saveMod(m.id,{tasks:(m.tasks||[]).map(k=>k.id===t.dataset.tk?Object.assign({},k,{done:t.checked}):k)})}
+  if(t.dataset.dtp){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{topics:(m.topics||[]).map(k=>k.id===t.dataset.dtp?Object.assign({},k,{done:t.checked}):k)})}
+  if(t.dataset.dtk){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{tasks:(m.tasks||[]).map(k=>k.id===t.dataset.dtk?Object.assign({},k,{done:t.checked}):k)})}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(state.openMod||state.editEv))closeDrawer()});
+
+/* ---------- assistant (sample + page tools) ---------- */
+const asst={sample:null,open:false,busy:false,turns:[],log:[],undo:null,ctl:null,err:""};
+const RULES=`Du bist der Assistent in Hendriks Studienplaner (Bachelor Technische Informatik, BHT Berlin). Antworte kurz auf Deutsch, in ganzen Sätzen, ohne Markdown. Du kannst die Daten der App mit den Tools ändern: Module (Status, Plansemester, Note, ECTS, "Noch zu tun", Notizen, Themen, Aufgaben), Termine und Ideen. Erfinde keine Daten oder Termine, nimm nur, was Hendrik sagt. Wenn etwas unklar ist, frag nach statt zu raten. Wenn Hendrik etwas am Aussehen oder an den Funktionen der App ändern will, kannst du das nicht selbst; lege es dann mit add_idea als Idee an und sag ihm, dass er es Claude im Projekt geben kann. Status-Werte: läuft, offen, unklar, nicht bestanden, bestanden. Plansemester: "" (keins), WS26, SS27, WS27, SS28, done. Termin-Arten: Klausur, Abgabe, Termin, Zeitraum. Datum immer YYYY-MM-DD.`;
+function ctxText(){
+  const m=state.mods.map(x=>`${x.id}|${x.name}|${x.status}|${x.planSem||"-"}|${x.todo||""}`).join("\n");
+  const e=state.events.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`${x.id}|${x.date}${x.time?" "+x.time:""}|${x.type}|${x.title}|${x.moduleId||""}`).join("\n");
+  return `Heute ist ${todayISO()}.\nModule (id|Name|Status|Plansemester|Noch zu tun):\n${m}\n\nTermine (id|Datum|Art|Titel|Modul):\n${e}`;
+}
+function recUndo(kind,path,old){if(!asst.undo)asst.undo=[];if(asst.undo.some(u=>u.path===path))return;asst.undo.push({kind,path,old:old?JSON.parse(JSON.stringify(old)):null})}
+const strip=o=>{const c=Object.assign({},o);delete c.id;return c};
+function findMod(id){const m=state.mods.find(x=>x.id===String(id));if(!m)throw new Error("Modul "+id+" gibt es nicht. Nutze eine id aus der Liste.");return m}
+async function modPatch(id,patch,label){const m=findMod(id);recUndo("doc","modules/"+m.id,strip(m));await state.db.doc("modules/"+m.id).update(patch);Object.assign(m,patch);asstLog(label+" · "+m.name);render();return "ok"}
+function asstLog(t){asst.log.push(t);renderAsst()}
+const S=(o)=>({type:"object",properties:o.p,required:o.r||[]});
+const TOOLS=[
+ {name:"get_module",description:"Liefert alle Details eines Moduls (Themen, Aufgaben, Notizen) als JSON.",inputSchema:S({p:{id:{type:"string"}},r:["id"]}),execute:i=>{const m=findMod(i.id);return {id:m.id,name:m.name,status:m.status,planSem:m.planSem,ects:m.ects,grade:m.grade,todo:m.todo,notes:m.notes,prereq:m.prereq,topics:(m.topics||[]).map(t=>({id:t.id,t:t.t,done:t.done})),tasks:(m.tasks||[]).map(t=>({id:t.id,t:t.t,done:t.done}))}}},
+ {name:"update_module",description:"Ändert Felder eines Moduls. Nur die übergebenen Felder werden geändert.",inputSchema:S({p:{id:{type:"string"},status:{type:"string"},planSem:{type:"string"},grade:{type:"string"},ects:{type:"number"},todo:{type:"string"},notes:{type:"string"}},r:["id"]}),execute:i=>{const p={};["status","planSem","grade","todo","notes"].forEach(k=>{if(i[k]!==undefined)p[k]=String(i[k])});if(i.ects!==undefined)p.ects=Number(i.ects)||0;if(p.status&&!STATUS.some(s=>s.k===p.status))throw new Error("Unbekannter Status");if(p.status==="bestanden"&&p.planSem===undefined)p.planSem="done";return modPatch(i.id,p,"Modul geändert")}},
+ {name:"add_items",description:"Fügt einem Modul Themen (kind=topic) oder Aufgaben (kind=task) hinzu.",inputSchema:S({p:{id:{type:"string"},kind:{type:"string",enum:["topic","task"]},texts:{type:"array",items:{type:"string"}}},r:["id","kind","texts"]}),execute:i=>{const m=findMod(i.id);const f=i.kind==="task"?"tasks":"topics";const add=(Array.isArray(i.texts)?i.texts:[i.texts]).map(t=>String(t).trim()).filter(Boolean).map(t=>({id:uid(),t,done:false}));const p={};p[f]=[...(m[f]||[]),...add];return modPatch(m.id,p,(f==="tasks"?"Aufgaben":"Themen")+" hinzugefügt")}},
+ {name:"set_items_done",description:"Hakt Themen oder Aufgaben eines Moduls ab (done=true) oder wieder auf (done=false). itemIds aus get_module.",inputSchema:S({p:{id:{type:"string"},kind:{type:"string",enum:["topic","task"]},itemIds:{type:"array",items:{type:"string"}},done:{type:"boolean"}},r:["id","kind","itemIds","done"]}),execute:i=>{const m=findMod(i.id);const f=i.kind==="task"?"tasks":"topics";const ids=(i.itemIds||[]).map(String);const p={};p[f]=(m[f]||[]).map(k=>ids.includes(k.id)?Object.assign({},k,{done:!!i.done}):k);return modPatch(m.id,p,(f==="tasks"?"Aufgaben":"Themen")+" abgehakt")}},
+ {name:"remove_items",description:"Entfernt Themen oder Aufgaben aus einem Modul. itemIds aus get_module.",inputSchema:S({p:{id:{type:"string"},kind:{type:"string",enum:["topic","task"]},itemIds:{type:"array",items:{type:"string"}}},r:["id","kind","itemIds"]}),execute:i=>{const m=findMod(i.id);const f=i.kind==="task"?"tasks":"topics";const ids=(i.itemIds||[]).map(String);const p={};p[f]=(m[f]||[]).filter(k=>!ids.includes(k.id));return modPatch(m.id,p,(f==="tasks"?"Aufgaben":"Themen")+" entfernt")}},
+ {name:"save_event",description:"Legt einen Termin an (ohne id) oder ändert einen (mit id). Gibt die id zurück.",inputSchema:S({p:{id:{type:"string"},title:{type:"string"},type:{type:"string"},date:{type:"string"},end:{type:"string"},time:{type:"string"},place:{type:"string"},moduleId:{type:"string"},notes:{type:"string"}}}),execute:async i=>{const old=i.id?state.events.find(e=>e.id===String(i.id)):null;if(i.id&&!old)throw new Error("Termin "+i.id+" gibt es nicht");const b=Object.assign({title:"",type:"Termin",date:"",end:"",time:"",place:"",moduleId:"",notes:"",assumed:""},old?strip(old):{});["title","type","date","end","time","place","moduleId","notes"].forEach(k=>{if(i[k]!==undefined)b[k]=String(i[k])});if(!/^\d{4}-\d{2}-\d{2}$/.test(b.date))throw new Error("Datum fehlt oder ist nicht YYYY-MM-DD");if(!b.title)throw new Error("Titel fehlt");if(i.date!==undefined)b.assumed="";const id=old?old.id:uid();recUndo("doc","events/"+id,old?strip(old):null);await state.db.doc("events/"+id).set(b);asstLog((old?"Termin geändert":"Termin angelegt")+" · "+b.title);return {id}}},
+ {name:"delete_event",description:"Löscht einen Termin. Kann über Rückgängig wiederhergestellt werden.",inputSchema:S({p:{id:{type:"string"}},r:["id"]}),execute:async i=>{const old=state.events.find(e=>e.id===String(i.id));if(!old)throw new Error("Termin gibt es nicht");recUndo("doc","events/"+old.id,strip(old));await state.db.doc("events/"+old.id).delete();asstLog("Termin gelöscht · "+old.title);return "ok"}},
+ {name:"add_idea",description:"Legt eine Idee für ein späteres App-Update an (Wünsche zu Aussehen oder Funktionen).",inputSchema:S({p:{title:{type:"string"},note:{type:"string"}},r:["title"]}),execute:async i=>{const id=uid();const max=state.ideas.reduce((a,x)=>Math.max(a,x.order||0),0);recUndo("doc","ideas/"+id,null);await state.db.doc("ideas/"+id).set({order:max+1,group:"Eigene Ideen",title:String(i.title),note:String(i.note||""),status:"Idee"});asstLog("Idee angelegt · "+i.title);return "ok"}}
+];
+async function doUndo(){const u=asst.undo;if(!u||!state.db)return;asst.undo=null;for(const x of u.slice().reverse()){try{if(x.old)await state.db.doc(x.path).set(x.old);else await state.db.doc(x.path).delete()}catch(e){flash("Rückgängig fehlgeschlagen")}}asst.turns.push({role:"assistant",content:"(Hendrik hat die letzten Änderungen rückgängig gemacht.)"});asstLog("Rückgängig gemacht");renderAsst()}
+async function askAsst(text){
+  if(!asst.sample||asst.busy||!text)return;
+  asst.busy=true;asst.err="";asst.undo=null;asst.log=[];
+  asst.turns.push({role:"user",content:text});asst.live="";renderAsst();
+  asst.ctl=new AbortController();
+  const turns=asst.turns.slice(-12);
+  try{
+    const {text:out}=await asst.sample([{role:"user",content:RULES+"\n\n"+ctxText()},...turns],{signal:asst.ctl.signal,tools:TOOLS,cache:false,onText:({text})=>{asst.live=text;renderAsst(true)}});
+    asst.turns.push({role:"assistant",content:out});
+  }catch(e){
+    const msg={not_granted:"Du hast der App den Zugriff auf Claude nicht erlaubt.",sampling_disabled:"Claude ist für dieses Konto hier nicht verfügbar.",tools_unavailable:"Diese Ansicht kann keine Änderungen über den Assistenten ausführen.",rate_limited:"Gerade zu viele Anfragen. Versuch es gleich noch mal.",cancelled:"Gestoppt.",refused:"Claude hat die Anfrage abgelehnt. Formulier sie bitte anders."}[e&&e.code]||"Das hat nicht geklappt. Versuch es noch mal.";
+    if(e&&e.text)asst.turns.push({role:"assistant",content:e.text});
+    asst.err=msg; if(e&&["not_granted","sampling_disabled","not_declared","capability_disabled"].includes(e.code)){asst.sample=null}
+  }finally{asst.busy=false;asst.live="";renderAsst()}
+}
+function renderAsst(liveOnly){
+  const root=document.getElementById("asstRoot");
+  const fab=document.getElementById("fab"); fab.hidden=!asst.sample||asst.open;
+  if(!asst.open){root.innerHTML="";return}
+  if(liveOnly){const l=document.getElementById("asst-live");if(l){l.textContent=asst.live;return}}
+  const keep=document.getElementById("asst-in");const val=keep?keep.value:"";const focused=document.activeElement===keep;
+  root.innerHTML=`<div class="scrim" data-asstclose="1"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="asst-t">
+   <div class="top"><div><div class="eyebrow">Mit Claude</div><h2 id="asst-t">Assistent</h2></div><button class="btn small" data-asstclose="1">Schließen</button></div>
+   <p class="muted" style="margin:0;font-size:.85rem">Sag, was sich ändern soll, z. B. „Hak bei Mathe 3 Laplace ab“, „Trag die SE2-Abgabe am 15.12. ein“ oder „Setz Spanisch auf bestanden“. Wünsche zum Aussehen der App landen als Idee im Reiter Ideen.</p>
+   <div class="chat">${asst.turns.map(t=>`<div class="bubble ${t.role==="user"?"me":"ai"}">${esc(t.content)}</div>`).join("")}
+   ${asst.log.map(l=>`<div class="bubble log">✓ ${esc(l)}</div>`).join("")}
+   ${asst.busy?`<div class="bubble ai" id="asst-live">${esc(asst.live||"Denkt nach …")}</div>`:""}
+   ${asst.err?`<div class="notice">${esc(asst.err)}</div>`:""}
+   ${!asst.busy&&asst.undo&&asst.undo.length?`<button class="btn small" data-asstundo="1" style="align-self:flex-start">Änderungen rückgängig machen</button>`:""}</div>
+   <form class="addrow" id="asst-form"><input type="text" id="asst-in" placeholder="Was soll ich ändern?" aria-label="Nachricht an den Assistenten" ${asst.sample?"":"disabled"}>
+   ${asst.busy?`<button class="btn" type="button" data-asststop="1">Stopp</button>`:`<button class="btn primary" type="submit">Senden</button>`}</form>
+  </aside>`;
+  const inp=document.getElementById("asst-in");inp.value=val;if(focused||!asst.busy)inp.focus();
+  const ch=root.querySelector(".drawer");ch.scrollTop=ch.scrollHeight;
+}
+document.getElementById("fab").addEventListener("click",()=>{asst.open=true;state.openMod=null;state.editEv=null;renderDrawer();renderAsst()});
+document.addEventListener("click",e=>{const el=e.target.closest("[data-asstclose],[data-asstundo],[data-asststop]");if(!el)return;
+  if(el.dataset.asstclose){asst.open=false;renderAsst()} else if(el.dataset.asstundo){doUndo()} else if(el.dataset.asststop){asst.ctl&&asst.ctl.abort()}});
+document.addEventListener("submit",e=>{if(e.target.id!=="asst-form")return;e.preventDefault();const i=document.getElementById("asst-in");const v=i.value.trim();if(!v)return;i.value="";askAsst(v)});
+(async()=>{try{const s=window.claude&&window.claude.use?await window.claude.use("sample"):null;if(!s)return;const lim=await s.limits().catch(()=>null);if(lim&&!lim.tools)return;asst.sample=s;renderAsst()}catch(e){}})();
+
+render();
+boot();
+document.addEventListener("sp:installable",()=>{if(view()==="handy")render()});
+window.addEventListener("online",()=>{if(view()==="handy")render()});window.addEventListener("offline",()=>{if(view()==="handy")render()});
+})();
+</script>
+</body>
+</html>
