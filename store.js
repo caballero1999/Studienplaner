@@ -57,7 +57,7 @@ function unlockScreen(enc){
       const done=v=>{d.remove();resolve(v)};
       d.querySelector("form").addEventListener("submit",async e=>{
         e.preventDefault();const pw=d.querySelector("#sp-pw").value;if(!pw)return;err("Entschlüssele …");
-        try{done(await decrypt(enc,pw))}catch(x){err("Das Passwort stimmt nicht.")}
+        try{const v=await decrypt(enc,pw);try{window.SPAltk&&window.SPAltk.unlock(pw)}catch(_){}done(v)}catch(x){err("Das Passwort stimmt nicht.")}
       });
       d.querySelector("#sp-file").addEventListener("change",async e=>{
         const f=e.target.files[0];if(!f)return;
@@ -245,7 +245,7 @@ window.SPInstall={
   ios:()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)
 };
 /* ---------------- Updates ---------------- */
-window.SP_VERSION="2.4 Bibliotheken (25.11.2026)";
+window.SP_VERSION="2.5 Modul-Fenster (25.11.2026)";
 function updateBanner(){
   if(document.getElementById("sp-upd"))return;
   const b=document.createElement("button");b.id="sp-upd";b.type="button";

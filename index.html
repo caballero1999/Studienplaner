@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <script src="store.js"></script>
 <script src="bib.js"></script>
+<script src="altk.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+JP:wght@400;700;900&display=swap">
 <style>
@@ -311,6 +312,40 @@ body{margin:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none
 .bib-week tr.today{color:var(--accent);font-weight:700}
 .bib-btns{margin-top:2px}
 .linkbtn{all:unset;cursor:pointer;text-decoration:underline;color:var(--accent)}
+/* Modul-Fenster */
+.modwin .modsum{display:flex;flex-wrap:wrap;gap:6px}
+.modwin .modsum button.pill{cursor:pointer;font-family:var(--f-mono);line-height:inherit}
+.modwin .modsec{display:flex;flex-direction:column;gap:6px}
+.modwin .modsec-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.modwin .modsec-h h3{margin:0}
+.modwin .modsec-sub{margin:0;font-size:.82rem}
+.modwin .moddet{border-top:1px solid var(--line);padding-top:10px}
+.modwin .moddet summary{cursor:pointer;font-weight:600;color:var(--muted);padding:4px 0}
+.modwin .moddet[open] summary{margin-bottom:10px}
+.altk-note{margin:0;font-size:.9rem}
+.altk-err{margin:4px 0 0;color:var(--bad);min-height:1em;font-size:.85rem}
+.altk-list{display:grid;gap:6px}
+.altk-file{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius,0);background:var(--bg)}
+.altk-file:hover{border-color:var(--accent)}
+.altk-ic{flex:none;font-family:var(--f-mono);font-size:.62rem;font-weight:700;padding:5px 6px;background:var(--bad);color:#fff;border-radius:3px}
+.altk-nm{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
+.altk-sz{flex:none;font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.pdfv{position:fixed;inset:0;z-index:60;background:#2b2b2b;display:flex;flex-direction:column}
+.pdfv-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top,0px));background:var(--panel);border-bottom:1px solid var(--line);color:var(--ink)}
+.pdfv-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdfv-p{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);white-space:nowrap}
+.pdfv-body{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 8px calc(16px + env(safe-area-inset-bottom,0px))}
+.pdfv-page{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:100%}
+.pdfv-msg{color:#ddd;margin-top:30vh}
+html.noscroll,html.noscroll body{overflow:hidden}
+@media (max-width:760px){
+  .drawer.modwin{top:max(5vh,env(safe-area-inset-top,0px));border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding-top:16px}
+}
+@media (min-width:761px){
+  .drawer.modwin{top:6vh;bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:min(720px,94vw);max-height:88vh;border:1px solid var(--line);border-radius:var(--radius,12px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+}
+@media (prefers-reduced-motion:no-preference){.drawer.modwin{animation:winup .2s ease-out}@keyframes winup{from{transform:translateY(30px);opacity:.4}}}
+@media (prefers-reduced-motion:no-preference) and (min-width:761px){.drawer.modwin{animation:winupd .2s ease-out}@keyframes winupd{from{transform:translate(-50%,20px);opacity:.4}}}
 </style>
 <style id="skin-hud" media="not all">
 /* =====================  CYBER-HUD THEME  ===================== */
@@ -1459,9 +1494,22 @@ function renderDrawer(){
     if(root.dataset.for==="m:"+m.id&&keep&&/^(f-notes|f-newtask|f-newtopic|f-grade|f-ects|f-todo)$/.test(keep)){ // don't clobber typing
       refreshTasks(m); return }
     root.dataset.for="m:"+m.id;
-    root.innerHTML=`<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
-      <div class="top"><div><div class="eyebrow">${esc(m.code||"Modul")}${m.sems&&m.sems.length?" · Ordner in Sem. "+esc(m.sems.join(", ")):""}</div><h2 id="dlg-t">${esc(m.name)}</h2></div><button class="btn small" data-close="1">Schließen</button></div>
+    const tp=m.topics||[],tdone=tp.filter(k=>k.done).length;
+    const mex=state.events.filter(e=>e.moduleId===m.id&&e.type==="Klausur"&&e.date>=isoD(new Date())).sort((a,b)=>a.date<b.date?-1:1)[0];
+    const stl=(STATUS.find(s=>s.k===m.status)||{}).l||m.status||"";
+    root.innerHTML=`<div class="scrim" data-close="1"></div><aside class="drawer modwin" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+      <div class="top"><div><div class="eyebrow">${esc(m.code||"Modul")}${m.sems&&m.sems.length?" · Ordner in Sem. "+esc(m.sems.join(", ")):""}</div><h2 id="dlg-t">${esc(m.name)}</h2></div><button class="btn small" data-close="1" aria-label="Schließen">✕</button></div>
+      <div class="modsum">${stl?`<span class="pill s-${esc(m.status)}">${esc(stl)}</span>`:""}${m.ects?`<span class="pill">${esc(m.ects)} ECTS</span>`:""}${m.grade?`<span class="pill">Note ${esc(m.grade)}</span>`:""}${mex?`<button type="button" class="pill t-Klausur" data-day="${esc(mex.date)}">Klausur ${esc(mex.date.slice(8,10)+"."+mex.date.slice(5,7)+".")}</button>`:""}</div>
       ${m.assumed?`<div class="ann">Annahme: ${esc(m.assumed)}</div>`:""}
+      <section class="modsec"><div class="modsec-h"><h3>Themen zum Lernen</h3><span class="mono muted" id="topicprog">${tp.length?tdone+" / "+tp.length+" sicher":""}</span></div>
+        ${tp.length?`<div class="progress" aria-hidden="true"><span id="topicbar" style="width:${Math.round(tdone/tp.length*100)}%;background:var(--ok)"></span></div>`:""}
+        <p class="muted modsec-sub">${tp.length?"Haken setzen, wenn du ein Thema sicher kannst.":"Noch keine Themen eingetragen."}${m.topicSrc?" Quelle: "+esc(m.topicSrc):""}</p><ul class="clean" id="topiclist"></ul>
+        <form class="addrow" id="f-addtopic"><input type="text" id="f-newtopic" placeholder="Neues Thema, z. B. Bode-Diagramm" aria-label="Neues Thema"><button class="btn" type="submit">Hinzufügen</button></form></section>
+      <section class="modsec"><div class="modsec-h"><h3>Altklausuren</h3></div><div id="altk-box"><p class="muted">Wird geladen …</p></div></section>
+      <section class="modsec"><div class="modsec-h"><h3>Aufgaben</h3></div><ul class="clean" id="tasklist"></ul>
+        <form class="addrow" id="f-addtask"><input type="text" id="f-newtask" placeholder="Neue Aufgabe, z. B. Altklausur 2024 rechnen" aria-label="Neue Aufgabe"><button class="btn" type="submit">Hinzufügen</button></form></section>
+      <section class="modsec"><div class="modsec-h"><h3>Termine</h3></div>${(()=>{const ev=state.events.filter(e=>e.moduleId===m.id);return ev.length?`<ul class="clean">${ev.map(evRow).join("")}</ul>`:`<p class="empty">Keine Termine verknüpft.</p>`})()}</section>
+      <details class="moddet"><summary>Status, Note und Notizen bearbeiten</summary>
       <div class="form">
         <label>Status<select id="f-status">${STATUS.map(s=>`<option value="${esc(s.k)}"${m.status===s.k?" selected":""}>${esc(s.l)}</option>`).join("")}</select></label>
         <label>Eingeplant für<select id="f-sem"><option value="">Nicht eingeplant</option>${SEMS.map(s=>`<option value="${s.k}"${m.planSem===s.k?" selected":""}>${s.l}</option>`).join("")}</select></label>
@@ -1471,14 +1519,10 @@ function renderDrawer(){
         <label class="full">Notizen und Lernplan<textarea id="f-notes" placeholder="Themen, Lernplan, Hinweise vom Prof …">${esc(m.notes||"")}</textarea></label>
       </div>
       ${m.prereq?`<div class="notice"><b>Voraussetzung:</b> ${esc(m.prereq)}</div>`:""}
-      <div><h3 style="margin-bottom:2px">Themen</h3><p class="muted" style="margin:0 0 6px;font-size:.82rem">Haken setzen, wenn du ein Thema sicher kannst.${m.topicSrc?" Quelle: "+esc(m.topicSrc):""}</p><ul class="clean" id="topiclist"></ul>
-        <form class="addrow" id="f-addtopic"><input type="text" id="f-newtopic" placeholder="Neues Thema, z. B. Bode-Diagramm" aria-label="Neues Thema"><button class="btn" type="submit">Hinzufügen</button></form></div>
-      <div><h3 style="margin-bottom:6px">Aufgaben</h3><ul class="clean" id="tasklist"></ul>
-        <form class="addrow" id="f-addtask"><input type="text" id="f-newtask" placeholder="Neue Aufgabe, z. B. Altklausur 2024 rechnen" aria-label="Neue Aufgabe"><button class="btn" type="submit">Hinzufügen</button></form></div>
-      ${m.altk?`<p class="muted" style="margin:0;font-size:.9rem">${m.altk} Altklausuren liegen in deinem Ordner „Altklausuren“${m.altkDir?" › "+esc(m.altkDir):""}.</p>`:""}
-      <div><h3 style="margin-bottom:6px">Termine</h3>${(()=>{const ev=state.events.filter(e=>e.moduleId===m.id);return ev.length?`<ul class="clean">${ev.map(evRow).join("")}</ul>`:`<p class="empty">Keine Termine verknüpft.</p>`})()}</div>
+      </details>
       <p class="status-line" id="savestate">Änderungen werden automatisch gespeichert.</p>
     </aside>`;
+    window.SPAltk&&window.SPAltk.render(root.querySelector("#altk-box"),m);
     refreshTasks(m);
     const fn=root.querySelector("#f-notes");let tm;fn.addEventListener("input",()=>{clearTimeout(tm);tm=setTimeout(()=>saveMod(m.id,{notes:fn.value}),700)});
     root.querySelector("#f-status").addEventListener("change",e=>{const p={status:e.target.value};if(p.status==="bestanden")p.planSem="done";else if(m.planSem==="done")p.planSem="";saveMod(m.id,p)});
@@ -1519,6 +1563,7 @@ function renderDrawer(){
   root.innerHTML="";root.dataset.for="";
 }
 function refreshTasks(m){
+  {const tp=m.topics||[],d=tp.filter(k=>k.done).length,pr=document.getElementById("topicprog"),br=document.getElementById("topicbar");if(pr&&tp.length)pr.textContent=d+" / "+tp.length+" sicher";if(br&&tp.length)br.style.width=Math.round(d/tp.length*100)+"%"}
   const tl=document.getElementById("topiclist");
   if(tl){const tp=m.topics||[];tl.innerHTML=tp.length?tp.map(k=>`<li class="task${k.done?" done":""}"><input type="checkbox" id="dp-${esc(k.id)}" data-dtp="${esc(k.id)}"${k.done?" checked":""}><span style="flex:1"><label for="dp-${esc(k.id)}" style="display:inline;color:inherit;font-size:.95rem">${esc(k.t)}</label></span><button class="btn small" data-deltp="${esc(k.id)}" aria-label="Thema entfernen">×</button></li>`).join(""):`<li class="empty">Noch keine Themen. Füge die Themen aus Vorlesung oder Altklausuren hinzu.</li>`}
   const ul=document.getElementById("tasklist"); if(!ul)return;
@@ -1534,7 +1579,7 @@ document.addEventListener("click",e=>{
     if(nv.classList.contains("open")&&!e.target.closest("#nav a"))nv.classList.remove("open");
     const dy=e.target.closest("[data-day],[data-dayclose],[data-dayshift],[data-newevday]");
     if(dy){
-      if(dy.dataset.day){state.day=dy.dataset.day;render();return}
+      if(dy.dataset.day){state.day=dy.dataset.day;if(state.openMod){state.openMod=null;renderDrawer()}render();return}
       if(dy.dataset.dayclose){state.day=null;render();return}
       if(dy.dataset.dayshift){const x=parseD(state.day);x.setDate(x.getDate()+ +dy.dataset.dayshift);state.day=isoD(x);
         if(x.getFullYear()!==state.calMonth[0]||x.getMonth()!==state.calMonth[1])state.calMonth=[x.getFullYear(),x.getMonth()];render();return}
