@@ -163,6 +163,28 @@ textarea{min-height:80px;resize:vertical}
 .empty{color:var(--muted);font-size:.9rem;padding:8px 0}
 .status-line{font-size:.8rem;color:var(--muted);font-family:var(--f-mono)}
 
+/* ---------- kompakte Terminkarten ---------- */
+ul.clean:has(> .ev2){display:flex;flex-direction:column;gap:8px}
+.ev2{grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:stretch;padding:10px 12px 10px 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;position:relative;transition:border-color .15s,transform .1s}
+.ev2:first-child{border-top:1px solid var(--line)}
+@media (hover:hover){.ev2:hover{border-color:var(--accent)}} .ev2:active{transform:scale(.99)}
+.ev2 .date{align-self:start;height:56px;display:flex;flex-direction:column;justify-content:center;border:0;border-radius:10px;background:var(--panel);padding:6px 0;min-height:52px;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.ev2 .date b{font-size:1.3rem;letter-spacing:0}
+.ev2.ty-Klausur .date{background:var(--bad-soft);color:var(--bad)} .ev2.ty-Abgabe .date{background:var(--warn-soft);color:var(--warn)}
+.ev2.ty-Termin .date{background:var(--info-soft);color:var(--info)} .ev2.ty-Zeitraum .date{background:var(--accent-soft);color:var(--accent)}
+.ev2.soon{border-color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+.ev2 .t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ev2 .r1{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0}
+.ev2 .r1 .pill{flex-shrink:0}
+.ev2 .r1 .pill{font-size:.68rem;padding:1px 7px}
+.ev2 .when{margin-left:auto;font-family:var(--f-mono);font-size:.75rem;color:var(--muted);white-space:nowrap}
+.ev2.soon .when{color:var(--bad);font-weight:500}
+.ev2 .todo{font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+.ev2 .ttl{font-weight:600;line-height:1.3;overflow-wrap:break-word;hyphens:auto}
+.ev2 .meta{gap:2px 14px;font-size:.78rem}
+.ev2 .clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.8rem;line-height:1.4}
+.ev2 .note{color:var(--muted)}
+.ev2 .ann{font-family:var(--f-body)}
 /* ---------- Tagesansicht ---------- */
 button.cell{font:inherit;color:inherit;text-align:left;cursor:pointer;display:block;width:100%}
 button.cell:hover{border-color:var(--accent)}
@@ -229,7 +251,6 @@ body{margin:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none
   nav#nav.open a.sec:nth-of-type(8){bottom:calc(72px + env(safe-area-inset-bottom,0px))}
   .drawer{width:100%;border-left:0;padding-top:max(18px,env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
   .panel{padding:14px}
-  .ev{grid-template-columns:56px 1fr auto;gap:10px}
 }
 @media (display-mode:standalone){.install-only{display:none}}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
@@ -381,14 +402,19 @@ function vOverview(){
     </section>
   </div></div>`;
 }
+function whenTxt(n,e){return n<0&&e&&e.end?"läuft":n<0?"vorbei":n===0?"heute":n===1?"morgen":n<60?"in "+n+" Tagen":"in "+Math.round(n/30)+" Mon."}
 function evRow(e){
   const d=parseD(e.date), n=daysUntil(e.date);
-  const when=n<0&&e.end?"läuft":n===0?"heute":n===1?"morgen":"in "+n+" Tagen";
-  return `<li class="ev"><div class="date"><b class="num">${d.getDate()}</b>${MON[d.getMonth()]}</div>
-  <div class="t"><div><span class="pill t-${esc(e.type)}">${esc(e.type)}</span> <strong>${esc(e.title)}</strong></div>
-  <div class="meta">${e.time?esc(e.time)+" Uhr":""}${e.end?"bis "+esc(fmtD(e.end)):""}${e.place?" · "+esc(e.place):""}${e.moduleId&&modName(e.moduleId)?" · "+esc(modName(e.moduleId)):""}</div>
-  ${e.assumed?`<div class="ann">Annahme: ${esc(e.assumed)}</div>`:""}</div>
-  <div class="days muted">${when}</div></li>`;
+  const meta=[e.time?esc(e.time)+" Uhr":"",e.end?"bis "+esc(fmtD(e.end)):"",e.place?esc(e.place):"",e.moduleId&&modName(e.moduleId)&&!String(e.title||"").toLowerCase().includes(modName(e.moduleId).toLowerCase())?esc(modName(e.moduleId)):""].filter(Boolean);
+  const warn=e.notes&&/zurückgetreten|nicht angemeldet|ACHTUNG/i.test(e.notes);
+  return `<li class="ev ev2 ty-${esc(e.type)}${n<=7&&n>=0?" soon":""}" data-editev="${esc(e.id)}" role="button" tabindex="0" aria-label="${esc(e.title)} bearbeiten">
+  <div class="date"><b class="num">${d.getDate()}</b>${MON[d.getMonth()]}</div>
+  <div class="t">
+    <div class="r1"><span class="pill t-${esc(e.type)}">${esc(e.type)}</span>${warn?`<span class="pill s-nb">Anmeldung prüfen</span>`:""}<span class="when">${whenTxt(n,e)}</span></div>
+    <div class="ttl">${esc(e.title)}</div>
+    ${meta.length?`<div class="meta">${meta.map(x=>`<span>${x}</span>`).join("")}</div>`:""}
+    ${e.assumed?`<div class="clamp ann">Annahme: ${esc(e.assumed)}</div>`:""}
+  </div></li>`;
 }
 const fmtD=s=>{const d=parseD(s);return d.getDate()+". "+MON[d.getMonth()]+" "+d.getFullYear()};
 
@@ -522,13 +548,19 @@ function vPruefungen(){
   const others=exams.filter(e=>!cur.some(m=>m.id===e.moduleId)&&e.date>=t).sort((a,b)=>a.date.localeCompare(b.date));
   const pz=state.events.find(e=>e.type==="Zeitraum"&&(e.end||e.date)>=t);
   const row=({m,e})=>{const d=e?parseD(e.date):null,n=e?daysUntil(e.date):null;
-    return `<li class="ev"><div class="date">${e?`<b class="num">${d.getDate()}</b>${MON[d.getMonth()]}`:`<b>?</b>offen`}</div>
-    <div class="t"><div><strong>${esc(m.name)}</strong></div>
-    <div class="meta">${m.todo?`<span>Noch zu tun: ${esc(m.todo)}</span>`:""}${e?`<span>${e.time?esc(e.time)+" Uhr":"Uhrzeit fehlt"}</span>${e.place?`<span>${esc(e.place)}</span>`:""}`:""}</div>
-    ${e&&e.notes?`<div style="font-size:.85rem;margin-top:2px">${/zurückgetreten|nicht angemeldet|ACHTUNG/i.test(e.notes)?`<span class="pill s-nb">Anmeldung prüfen</span> `:""}${esc(e.notes)}</div>`:""}
-    ${(()=>{const sec=exams.filter(x=>x.moduleId===m.id&&e&&x.id!==e.id&&x.date>e.date).sort((a,b)=>a.date.localeCompare(b.date))[0];return sec?`<div class="meta" style="margin-top:2px"><span>Nächster Termin: ${esc(fmtD(sec.date))}${sec.time?", "+esc(sec.time):""}</span></div>`:""})()}
-    ${e&&e.assumed?`<div class="ann">Annahme: ${esc(e.assumed)}</div>`:""}</div>
-    <div class="days" style="text-align:right">${e?`<div class="muted">${n<0?"vorbei":n===0?"heute":n===1?"morgen":"in "+n+" Tagen"}</div><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button>`:`<span class="pill s-offen">Termin fehlt</span><br><button class="btn small" style="margin-top:4px" data-newexam="${esc(m.id)}">Eintragen</button>`}</div></li>`};
+    const sec=e?exams.filter(x=>x.moduleId===m.id&&x.id!==e.id&&x.date>e.date).sort((a,b)=>a.date.localeCompare(b.date))[0]:null;
+    const warn=e&&e.notes&&/zurückgetreten|nicht angemeldet|ACHTUNG/i.test(e.notes);
+    const meta=e?[e.time?esc(e.time)+" Uhr":"Uhrzeit fehlt",e.place?esc(e.place):"",sec?"2. Termin "+esc(fmtD(sec.date)):""].filter(Boolean):[];
+    return `<li class="ev ev2 ty-Klausur${e&&n<=7&&n>=0?" soon":""}" ${e?`data-editev="${esc(e.id)}" role="button" tabindex="0"`:""}>
+    <div class="date">${e?`<b class="num">${d.getDate()}</b>${MON[d.getMonth()]}`:`<b>?</b>offen`}</div>
+    <div class="t">
+      <div class="r1">${warn?`<span class="pill s-nb">Anmeldung prüfen</span>`:""}${m.todo?`<span class="todo">${esc(m.todo)}</span>`:""}<span class="when">${e?whenTxt(n):""}</span></div>
+      <div class="ttl">${esc(m.name)}</div>
+      ${meta.length?`<div class="meta">${meta.map(x=>`<span>${x}</span>`).join("")}</div>`:""}
+      ${e&&e.notes?`<div class="clamp note">${esc(e.notes)}</div>`:""}
+      ${e&&e.assumed?`<div class="clamp ann">Annahme: ${esc(e.assumed)}</div>`:""}
+      ${e?"":`<div><button class="btn small primary" data-newexam="${esc(m.id)}">Termin eintragen</button></div>`}
+    </div></li>`};
   return `<div class="stack"><div><div class="eyebrow">WS 2026/27 · ${cur.length} Module</div><h1>Prüfungen</h1>
   <p class="lead">Alle Module, die du dieses Semester abschließen willst, mit ihrem Prüfungstermin und dem, was vorher noch fehlt.</p></div>
   ${pz?`<div class="notice">${esc(pz.title)}: ${esc(fmtD(pz.date))}${pz.end?" bis "+esc(fmtD(pz.end)):""}.${pz.assumed?" "+esc(pz.assumed):""}</div>`:""}
@@ -593,8 +625,8 @@ function vTermine(){
   <section class="panel"><div class="cal-head"><button class="btn small" data-cal="-1" aria-label="Vorheriger Monat">‹</button><h2 style="text-align:center">${MONL[mo]} ${y}</h2><button class="btn small" data-cal="1" aria-label="Nächster Monat">›</button></div>
     <div class="cal">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="dow">${d}</div>`).join("")}${cells}</div><p class="muted" style="font-size:.8rem;margin:8px 0 0">Tipp auf einen Tag, um alles zu sehen, was dann ansteht.</p></section>
   <section class="panel"><h2>Kommende Termine <button class="btn small primary" data-newev="1">Termin anlegen</button></h2>
-    ${up.length?`<ul class="clean">${up.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul>`:`<p class="empty">Noch keine Termine. Leg deine Klausuren für den 1. Prüfungszeitraum an, sobald sie feststehen.</p>`}
-    ${past.length?`<details style="margin-top:12px"><summary class="muted">Vergangene Termine (${past.length})</summary><ul class="clean">${past.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul></details>`:""}
+    ${up.length?`<ul class="clean">${up.map(evRow).join("")}</ul>`:`<p class="empty">Noch keine Termine. Leg deine Klausuren für den 1. Prüfungszeitraum an, sobald sie feststehen.</p>`}
+    ${past.length?`<details style="margin-top:12px"><summary class="muted">Vergangene Termine (${past.length})</summary><ul class="clean">${past.map(evRow).join("")}</ul></details>`:""}
   </section></div></div>`;
 }
 
@@ -756,7 +788,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.dtp){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{topics:(m.topics||[]).map(k=>k.id===t.dataset.dtp?Object.assign({},k,{done:t.checked}):k)})}
   if(t.dataset.dtk){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{tasks:(m.tasks||[]).map(k=>k.id===t.dataset.dtk?Object.assign({},k,{done:t.checked}):k)})}
 });
-document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(state.openMod||state.editEv){closeDrawer();return}if(state.day){state.day=null;render()}});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches("li[data-editev]")){e.preventDefault();e.target.click();return}if(e.key!=="Escape")return;if(state.openMod||state.editEv){closeDrawer();return}if(state.day){state.day=null;render()}});
 
 /* ---------- assistant (sample + page tools) ---------- */
 const asst={sample:null,open:false,busy:false,turns:[],log:[],undo:null,ctl:null,err:""};
