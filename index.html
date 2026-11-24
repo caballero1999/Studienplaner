@@ -163,6 +163,25 @@ textarea{min-height:80px;resize:vertical}
 .empty{color:var(--muted);font-size:.9rem;padding:8px 0}
 .status-line{font-size:.8rem;color:var(--muted);font-family:var(--f-mono)}
 
+/* ---------- Tagesansicht ---------- */
+button.cell{font:inherit;color:inherit;text-align:left;cursor:pointer;display:block;width:100%}
+button.cell:hover{border-color:var(--accent)}
+.cell.sel{border-color:var(--accent);background:var(--accent-soft)}
+.cell .cnt{float:right;font-size:.65rem;background:var(--ink);color:var(--panel);border-radius:999px;padding:0 5px;line-height:1.5}
+.daysheet{position:fixed;z-index:19;left:50%;transform:translateX(-50%);bottom:0;width:min(560px,100%);max-height:85vh;overflow-y:auto;background:var(--panel);
+  border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.daysheet .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px;cursor:pointer}
+.daysheet .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.daynav{display:flex;justify-content:space-between;margin:12px 0}
+.daylist{display:flex;flex-direction:column;gap:10px}
+.daycard{border:1px solid var(--line);border-left:4px solid var(--info);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
+.daycard .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.daycard.dc-Klausur{border-left-color:var(--bad)} .daycard.dc-Abgabe{border-left-color:var(--warn)} .daycard.dc-Zeitraum{border-left-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.daysheet{animation:up .2s ease-out}@keyframes up{from{transform:translate(-50%,30px);opacity:.5}}}
+button.cell{position:relative}
+.cell .cnt{position:absolute;top:3px;right:3px;float:none}
+@media (max-width:640px){.cell.has .d{font-weight:700;color:var(--ink)}
+  .cell .e.t-Klausur{background:var(--bad)} .cell .e.t-Abgabe{background:var(--warn)} .cell .e.t-Termin{background:var(--info)} .cell .e.t-Zeitraum{background:var(--accent);opacity:.35;height:3px}}
 /* ---------- Handy-App ---------- */
 html{-webkit-text-size-adjust:100%}
 body{margin:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
@@ -275,7 +294,7 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 /* ---------- routing ---------- */
 const VIEWS=["ueberblick","woche","pruefungen","module","plan","termine","ideen","handy"];
 function view(){const h=location.hash.slice(1);return VIEWS.includes(h)?h:"ueberblick"}
-window.addEventListener("hashchange",render);
+window.addEventListener("hashchange",()=>{state.day=null;render()});
 
 /* ---------- data ---------- */
 async function boot(){
@@ -564,19 +583,57 @@ function vTermine(){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
     const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     const evs=state.events.filter(e=>e.date===iso||(e.end&&e.date<=iso&&e.end>=iso));
-    cells+=`<div class="cell${d.getMonth()!==mo?" other":""}${iso===t?" today":""}"><div class="d num">${d.getDate()}</div>${evs.map(e=>`<span class="e t-${esc(e.type)}${e.end?" range":""}" title="${esc(e.title)}">${e.time&&!e.end?esc(e.time)+" ":""}${esc(e.title)}</span>`).join("")}</div>`;
+    const nIt=evs.length;
+    cells+=`<button type="button" data-day="${iso}" aria-label="${d.getDate()}. ${MONL[d.getMonth()]}${nIt?", "+nIt+(nIt===1?" Eintrag":" Einträge"):""}" class="cell${d.getMonth()!==mo?" other":""}${iso===t?" today":""}${state.day===iso?" sel":""}${nIt?" has":""}"><div class="d num">${d.getDate()}${nIt>1?`<span class="cnt">${nIt}</span>`:""}</div>${evs.map(e=>`<span class="e t-${esc(e.type)}${e.end?" range":""}">${e.time&&!e.end?esc(e.time)+" ":""}${esc(e.title)}</span>`).join("")}</button>`;
   }
   const up=state.events.filter(e=>(e.end||e.date)>=t).sort((a,b)=>a.date.localeCompare(b.date));
   const past=state.events.filter(e=>(e.end||e.date)<t).sort((a,b)=>b.date.localeCompare(a.date));
   return `<div class="stack"><div><div class="eyebrow">Prüfungen, Abgaben, Fristen</div><h1>Termine</h1></div>
   <div class="grid g2">
   <section class="panel"><div class="cal-head"><button class="btn small" data-cal="-1" aria-label="Vorheriger Monat">‹</button><h2 style="text-align:center">${MONL[mo]} ${y}</h2><button class="btn small" data-cal="1" aria-label="Nächster Monat">›</button></div>
-    <div class="cal">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="dow">${d}</div>`).join("")}${cells}</div></section>
+    <div class="cal">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div class="dow">${d}</div>`).join("")}${cells}</div><p class="muted" style="font-size:.8rem;margin:8px 0 0">Tipp auf einen Tag, um alles zu sehen, was dann ansteht.</p></section>
   <section class="panel"><h2>Kommende Termine <button class="btn small primary" data-newev="1">Termin anlegen</button></h2>
     ${up.length?`<ul class="clean">${up.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul>`:`<p class="empty">Noch keine Termine. Leg deine Klausuren für den 1. Prüfungszeitraum an, sobald sie feststehen.</p>`}
     ${past.length?`<details style="margin-top:12px"><summary class="muted">Vergangene Termine (${past.length})</summary><ul class="clean">${past.map(e=>evRow(e).replace('<div class="days muted">',`<div class="days muted"><button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button> `)).join("")}</ul></details>`:""}
   </section></div></div>`;
 }
+
+/* ---------- Tagesansicht (Kalender-Tag antippen) ---------- */
+const DOW_L=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+const TORDER={Klausur:0,Abgabe:1,Termin:2,Zeitraum:3};
+function renderDay(){
+  let root=document.getElementById("dayRoot");
+  if(!root){root=document.createElement("div");root.id="dayRoot";document.body.appendChild(root)}
+  const iso=state.day; if(!iso){root.innerHTML="";return}
+  const d=parseD(iso), n=daysUntil(iso);
+  const evs=state.events.filter(e=>e.date===iso||(e.end&&e.date<=iso&&e.end>=iso)).sort((a,b)=>(TORDER[a.type]??9)-(TORDER[b.type]??9)||(a.time||"").localeCompare(b.time||""));
+  const sl=typeof slotsOn==="function"?slotsOn(d).filter(x=>!x.off):[];
+  const when=n===0?"Heute":n===1?"Morgen":n===-1?"Gestern":n>1?"in "+n+" Tagen":"vor "+(-n)+" Tagen";
+  const cnt={};evs.forEach(e=>cnt[e.type]=(cnt[e.type]||0)+1);
+  const summary=Object.keys(cnt).sort((a,b)=>(TORDER[a]??9)-(TORDER[b]??9)).map(k=>`<span class="pill t-${esc(k)}">${cnt[k]} ${esc(k==="Klausur"&&cnt[k]>1?"Klausuren":k==="Abgabe"&&cnt[k]>1?"Abgaben":k==="Termin"&&cnt[k]>1?"Termine":k)}</span>`).join(" ");
+  const card=e=>{const m=e.moduleId&&state.mods.find(x=>x.id===e.moduleId);
+    const open=m?(m.topics||[]).filter(x=>!x.done).length:0, tasks=m?(m.tasks||[]).filter(x=>!x.done).length:0;
+    return `<li class="daycard dc-${esc(e.type)}">
+      <div class="row"><span class="pill t-${esc(e.type)}">${esc(e.type)}</span><span class="mono num muted">${e.time?esc(e.time)+" Uhr":e.end?"bis "+esc(fmtD(e.end)):"ganztägig"}</span></div>
+      <strong>${esc(e.title)}</strong>
+      ${e.place||m?`<div class="meta">${e.place?`<span>${esc(e.place)}</span>`:""}${m?`<span>${esc(m.name)}</span>`:""}</div>`:""}
+      ${e.notes?`<div class="muted" style="font-size:.88rem">${esc(e.notes)}</div>`:""}
+      ${e.assumed?`<div class="ann">Unsicher: ${esc(e.assumed)}</div>`:""}
+      ${m&&(open||tasks)?`<div class="meta">${open?`<span>${open} Themen offen</span>`:""}${tasks?`<span>${tasks} Aufgaben offen</span>`:""}</div>`:""}
+      <div class="btnrow" style="margin-top:4px">${m?`<button class="btn small" data-open="${esc(m.id)}">Modul öffnen</button>`:""}<button class="btn small" data-editev="${esc(e.id)}">Bearbeiten</button></div>
+    </li>`};
+  root.innerHTML=`<div class="scrim" data-dayclose="1" style="z-index:18"></div>
+  <aside class="daysheet" role="dialog" aria-modal="true" aria-labelledby="day-t">
+    <div class="grab" data-dayclose="1" aria-hidden="true"></div>
+    <div class="top"><div><div class="eyebrow">${esc(when)}</div><h2 id="day-t">${DOW_L[d.getDay()]}, ${d.getDate()}. ${MONL[d.getMonth()]} ${d.getFullYear()}</h2>${summary?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${summary}</div>`:""}</div>
+      <button class="btn small" data-dayclose="1" aria-label="Schließen">✕</button></div>
+    <div class="daynav"><button class="btn small" data-dayshift="-1">‹ Vortag</button><button class="btn small" data-dayshift="1">Nächster Tag ›</button></div>
+    ${evs.length?`<ul class="clean daylist">${evs.map(card).join("")}</ul>`:`<p class="empty">An diesem Tag stehen keine Prüfungen, Abgaben oder Termine an.</p>`}
+    ${sl.length?`<h3 style="margin:16px 0 8px">Vorlesungen &amp; Übungen</h3><div style="display:flex;flex-direction:column;gap:8px">${sl.map(slotCard).join("")}</div>`:""}
+    <div class="btnrow"><button class="btn primary" data-newevday="${iso}">Termin an diesem Tag anlegen</button></div>
+  </aside>`;
+}
+const _render0=render; render=function(){_render0();renderDay()};
 
 /* ---------- drawer (module / event editor) ---------- */
 function renderDrawer(){
@@ -660,6 +717,15 @@ document.addEventListener("click",e=>{
   { const mb=e.target.closest("[data-more]"); const nv=document.getElementById("nav");
     if(mb){const o=nv.classList.toggle("open");mb.setAttribute("aria-expanded",o?"true":"false");return}
     if(nv.classList.contains("open")&&!e.target.closest("#nav a"))nv.classList.remove("open");
+    const dy=e.target.closest("[data-day],[data-dayclose],[data-dayshift],[data-newevday]");
+    if(dy){
+      if(dy.dataset.day){state.day=dy.dataset.day;render();return}
+      if(dy.dataset.dayclose){state.day=null;render();return}
+      if(dy.dataset.dayshift){const x=parseD(state.day);x.setDate(x.getDate()+ +dy.dataset.dayshift);state.day=isoD(x);
+        if(x.getFullYear()!==state.calMonth[0]||x.getMonth()!==state.calMonth[1])state.calMonth=[x.getFullYear(),x.getMonth()];render();return}
+      if(dy.dataset.newevday){state.editEv={type:"Termin",date:dy.dataset.newevday};state.openMod=null;state.day=null;render();renderDrawer();return}
+    }
+    if(e.target.closest("[data-editev],[data-open]")&&state.day){state.day=null;renderDay()}
     const h=e.target.closest("[data-act]");
     if(h){ handyAct(h.dataset.act,h); return } }
 
@@ -690,7 +756,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.dtp){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{topics:(m.topics||[]).map(k=>k.id===t.dataset.dtp?Object.assign({},k,{done:t.checked}):k)})}
   if(t.dataset.dtk){const m=state.mods.find(x=>x.id===state.openMod);if(m)saveMod(m.id,{tasks:(m.tasks||[]).map(k=>k.id===t.dataset.dtk?Object.assign({},k,{done:t.checked}):k)})}
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(state.openMod||state.editEv))closeDrawer()});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(state.openMod||state.editEv){closeDrawer();return}if(state.day){state.day=null;render()}});
 
 /* ---------- assistant (sample + page tools) ---------- */
 const asst={sample:null,open:false,busy:false,turns:[],log:[],undo:null,ctl:null,err:""};
